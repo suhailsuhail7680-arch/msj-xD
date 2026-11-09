@@ -1,0 +1,6 @@
+{
+  "name": "msj xD",
+  "description": "Advanced 8 Ball Pool visual aim-assistant tool with floating overlay, precision ball positioning, bank shot guidelines, and customizable HUD.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

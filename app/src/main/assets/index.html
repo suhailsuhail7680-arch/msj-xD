@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Smart Expense Tracker & Budget Manager</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            darkBg: '#0F172A',
+            darkSurface: '#1E293B',
+            darkCard: '#334155',
+            accentGreen: '#10B981',
+            accentRed: '#EF4444',
+            accentGold: '#F59E0B',
+            accentPrimary: '#6366F1'
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* Mobile-first polish & smooth scrolling */
+    body {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    input, select, textarea {
+      user-select: auto;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+  <!-- Mobile Container Wrapper -->
+  <div class="max-w-md w-full mx-auto flex-1 flex flex-col pb-24">
+
+    <!-- Top App Bar -->
+    <header class="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-5 py-4 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <i data-lucide="wallet" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-white">Expensify Pro</h1>
+          <p class="text-xs text-slate-400">Offline & Local Storage</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button id="exportBtn" title="Export JSON" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+          <i data-lucide="download" class="w-4 h-4"></i>
+        </button>
+        <button id="clearAllBtn" title="Clear All Data" class="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition">
+          <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 px-5 pt-5 space-y-5">
+
+      <!-- Total Balance Master Card -->
+      <section class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900/60 via-slate-900 to-slate-900 border border-indigo-500/30 p-5 shadow-xl">
+        <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl"></div>
+        <div class="relative z-10">
+          <span class="text-xs font-semibold tracking-wider uppercase text-slate-400">Total Net Balance</span>
+          <h2 id="totalBalance" class="text-3xl font-extrabold text-white mt-1 mb-4">₹0.00</h2>
+
+          <div class="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800/80">
+            <!-- Total Income -->
+            <div class="flex items-center space-x-3 bg-slate-800/50 rounded-xl p-2.5 border border-slate-700/50">
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <i data-lucide="arrow-down-left" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <p class="text-[10px] uppercase font-bold text-slate-400">Income</p>
+                <p id="totalIncome" class="text-sm font-bold text-emerald-400">₹0.00</p>
+              </div>
+            </div>
+
+            <!-- Total Expense -->
+            <div class="flex items-center space-x-3 bg-slate-800/50 rounded-xl p-2.5 border border-slate-700/50">
+              <div class="w-8 h-8 rounded-lg bg-rose-500/20 flex items-center justify-center text-rose-400">
+                <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <p class="text-[10px] uppercase font-bold text-slate-400">Expense</p>
+                <p id="totalExpense" class="text-sm font-bold text-rose-400">₹0.00</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Filter & Search Bar -->
+      <section class="space-y-3">
+        <div class="flex items-center space-x-2">
+          <!-- Search input -->
+          <div class="relative flex-1">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+            <input 
+              type="text" 
+              id="searchInput" 
+              placeholder="Search title, category..." 
+              class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+            />
+          </div>
+
+          <!-- Type filter pill buttons -->
+          <select id="typeFilter" class="bg-slate-900 border border-slate-800 text-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
+            <option value="all">All</option>
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+          </select>
+        </div>
+
+        <!-- Category pills (horizontal scroll) -->
+        <div class="flex space-x-2 overflow-x-auto pb-1 text-xs custom-scrollbar" id="categoryPillList">
+          <button data-cat="all" class="cat-pill px-3 py-1.5 rounded-full bg-indigo-600 text-white font-medium whitespace-nowrap">All Categories</button>
+          <button data-cat="Food" class="cat-pill px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium whitespace-nowrap">🍔 Food</button>
+          <button data-cat="Salary" class="cat-pill px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium whitespace-nowrap">💰 Salary</button>
+          <button data-cat="Shopping" class="cat-pill px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium whitespace-nowrap">🛍️ Shopping</button>
+          <button data-cat="Bills" class="cat-pill px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium whitespace-nowrap">⚡ Bills</button>
+          <button data-cat="Transport" class="cat-pill px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium whitespace-nowrap">🚗 Transport</button>
+          <button data-cat="Entertainment" class="cat-pill px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 font-medium whitespace-nowrap">🍿 Fun</button>
+        </div>
+      </section>
+
+      <!-- Transaction List Section -->
+      <section>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Transactions</h3>
+          <span id="txCount" class="text-xs text-slate-500">0 records</span>
+        </div>
+
+        <!-- Transactions Container -->
+        <div id="txListContainer" class="space-y-2.5">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden flex-col items-center justify-center py-12 text-center">
+          <div class="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 mb-3">
+            <i data-lucide="receipt" class="w-8 h-8"></i>
+          </div>
+          <p class="text-sm font-semibold text-slate-400">No transactions recorded yet</p>
+          <p class="text-xs text-slate-500 max-w-xs mt-1">Tap the plus button below to log your first income or expense.</p>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Floating Action Button (FAB) -->
+    <div class="fixed bottom-6 right-6 md:right-[calc(50%-13rem)] z-40">
+      <button 
+        id="openAddModalBtn" 
+        class="w-14 h-14 rounded-full bg-gradient-to-tr from-indigo-600 to-emerald-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/40 hover:scale-105 active:scale-95 transition"
+      >
+        <i data-lucide="plus" class="w-7 h-7"></i>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Add / Edit Transaction Modal -->
+  <div id="txModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
+    <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-200">
+      
+      <div class="flex items-center justify-between mb-5">
+        <h3 id="modalTitle" class="text-lg font-bold text-white">Add Transaction</h3>
+        <button id="closeModalBtn" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="txForm" class="space-y-4">
+        <input type="hidden" id="editId" value="" />
+
+        <!-- Transaction Type Switcher -->
+        <div class="grid grid-cols-2 gap-2 p-1 bg-slate-800 rounded-xl">
+          <button 
+            type="button" 
+            id="typeExpenseBtn" 
+            class="py-2 text-xs font-bold rounded-lg transition bg-rose-600 text-white flex items-center justify-center space-x-1.5"
+          >
+            <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+            <span>Expense</span>
+          </button>
+          <button 
+            type="button" 
+            id="typeIncomeBtn" 
+            class="py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white flex items-center justify-center space-x-1.5"
+          >
+            <i data-lucide="arrow-down-left" class="w-3.5 h-3.5"></i>
+            <span>Income</span>
+          </button>
+        </div>
+
+        <!-- Amount -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Amount (₹)</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-2.5 text-slate-400 font-bold">₹</span>
+            <input 
+              type="number" 
+              step="0.01" 
+              id="amountInput" 
+              required 
+              placeholder="0.00" 
+              class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-4 py-2.5 text-white font-bold text-lg focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+        </div>
+
+        <!-- Title -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1">Title / Description</label>
+          <input 
+            type="text" 
+            id="titleInput" 
+            required 
+            placeholder="e.g., Grocery Shopping, Freelance" 
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500"
+          />
+        </div>
+
+        <!-- Category & Date Grid -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Category</label>
+            <select id="categorySelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500">
+              <option value="Food">🍔 Food</option>
+              <option value="Salary">💰 Salary</option>
+              <option value="Shopping">🛍️ Shopping</option>
+              <option value="Bills">⚡ Bills</option>
+              <option value="Transport">🚗 Transport</option>
+              <option value="Entertainment">🍿 Fun</option>
+              <option value="Health">💊 Health</option>
+              <option value="Other">📦 Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Date</label>
+            <input 
+              type="date" 
+              id="dateInput" 
+              required 
+              class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="pt-2 flex space-x-3">
+          <button 
+            type="button" 
+            id="cancelModalBtn" 
+            class="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm transition"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            class="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-500 hover:opacity-95 text-white font-bold text-sm shadow-lg shadow-indigo-500/20 transition"
+          >
+            Save Record
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- Client-side Logic Script -->
+  <script>
+    // State management backed by LocalStorage
+    const STORAGE_KEY = 'expensify_pro_transactions';
+    let transactions = [];
+    let currentCategoryFilter = 'all';
+    let currentModalType = 'expense';
+
+    // Elements
+    const totalBalanceEl = document.getElementById('totalBalance');
+    const totalIncomeEl = document.getElementById('totalIncome');
+    const totalExpenseEl = document.getElementById('totalExpense');
+    const txCountEl = document.getElementById('txCount');
+    const txListContainer = document.getElementById('txListContainer');
+    const emptyState = document.getElementById('emptyState');
+    const searchInput = document.getElementById('searchInput');
+    const typeFilter = document.getElementById('typeFilter');
+    const categoryPills = document.querySelectorAll('.cat-pill');
+
+    // Modal elements
+    const txModal = document.getElementById('txModal');
+    const openAddModalBtn = document.getElementById('openAddModalBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const cancelModalBtn = document.getElementById('cancelModalBtn');
+    const txForm = document.getElementById('txForm');
+    const modalTitle = document.getElementById('modalTitle');
+    const editIdInput = document.getElementById('editId');
+    const amountInput = document.getElementById('amountInput');
+    const titleInput = document.getElementById('titleInput');
+    const categorySelect = document.getElementById('categorySelect');
+    const dateInput = document.getElementById('dateInput');
+    const typeExpenseBtn = document.getElementById('typeExpenseBtn');
+    const typeIncomeBtn = document.getElementById('typeIncomeBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+
+    // Initialize application
+    function initApp() {
+      // Set today's date in input
+      dateInput.value = new Date().toISOString().split('T')[0];
+
+      loadFromLocalStorage();
+      render();
+      lucide.createIcons();
+
+      setupEventListeners();
+    }
+
+    // Load from LocalStorage
+    function loadFromLocalStorage() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          transactions = JSON.parse(stored);
+        } else {
+          // Sample initial data for first-time onboarding
+          transactions = [
+            { id: 'tx-1', title: 'Monthly Salary', amount: 45000, type: 'income', category: 'Salary', date: new Date().toISOString().split('T')[0] },
+            { id: 'tx-2', title: 'Grocery Supermarket', amount: 2450, type: 'expense', category: 'Food', date: new Date().toISOString().split('T')[0] },
+            { id: 'tx-3', title: 'Electricity Bill', amount: 1200, type: 'expense', category: 'Bills', date: new Date().toISOString().split('T')[0] }
+          ];
+          saveToLocalStorage();
+        }
+      } catch (e) {
+        console.error('Failed to parse localStorage', e);
+        transactions = [];
+      }
+    }
+
+    // Save to LocalStorage
+    function saveToLocalStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+    }
+
+    // Currency Formatter
+    function formatCurrency(num) {
+      return '₹' + Number(num).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // Category Icon Mapper
+    function getCategoryEmoji(cat) {
+      const map = {
+        Food: '🍔',
+        Salary: '💰',
+        Shopping: '🛍️',
+        Bills: '⚡',
+        Transport: '🚗',
+        Entertainment: '🍿',
+        Health: '💊',
+        Other: '📦'
+      };
+      return map[cat] || '🏷️';
+    }
+
+    // Render entire UI
+    function render() {
+      // 1. Calculate Balances
+      let income = 0;
+      let expense = 0;
+
+      transactions.forEach(t => {
+        const val = parseFloat(t.amount) || 0;
+        if (t.type === 'income') income += val;
+        else expense += val;
+      });
+
+      const net = income - expense;
+
+      totalBalanceEl.textContent = formatCurrency(net);
+      totalIncomeEl.textContent = formatCurrency(income);
+      totalExpenseEl.textContent = formatCurrency(expense);
+
+      // Color net balance
+      if (net >= 0) {
+        totalBalanceEl.className = 'text-3xl font-extrabold text-white mt-1 mb-4';
+      } else {
+        totalBalanceEl.className = 'text-3xl font-extrabold text-rose-400 mt-1 mb-4';
+      }
+
+      // 2. Filter transactions
+      const search = searchInput.value.toLowerCase().trim();
+      const filterType = typeFilter.value;
+
+      const filtered = transactions.filter(t => {
+        const matchesSearch = t.title.toLowerCase().includes(search) || t.category.toLowerCase().includes(search);
+        const matchesType = filterType === 'all' || t.type === filterType;
+        const matchesCat = currentCategoryFilter === 'all' || t.category === currentCategoryFilter;
+        return matchesSearch && matchesType && matchesCat;
+      });
+
+      txCountEl.textContent = `${filtered.length} records`;
+
+      // 3. Render List
+      if (filtered.length === 0) {
+        txListContainer.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        emptyState.classList.add('flex');
+      } else {
+        emptyState.classList.add('hidden');
+        emptyState.classList.remove('flex');
+
+        // Sort descending by date
+        filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        txListContainer.innerHTML = filtered.map(item => `
+          <div class="group bg-slate-900 border border-slate-800/80 hover:border-slate-700 rounded-2xl p-3.5 flex items-center justify-between transition-all">
+            <div class="flex items-center space-x-3.5">
+              <div class="w-11 h-11 rounded-xl ${item.type === 'income' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'} flex items-center justify-center text-lg border border-slate-800">
+                ${getCategoryEmoji(item.category)}
+              </div>
+              <div>
+                <p class="font-bold text-sm text-slate-100 group-hover:text-indigo-400 transition">${escapeHtml(item.title)}</p>
+                <div class="flex items-center space-x-2 text-xs text-slate-400 mt-0.5">
+                  <span class="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] text-slate-300 font-semibold">${item.category}</span>
+                  <span>•</span>
+                  <span>${item.date}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+              <div class="text-right">
+                <p class="font-bold text-sm ${item.type === 'income' ? 'text-emerald-400' : 'text-slate-100'}">
+                  ${item.type === 'income' ? '+' : '-'}${formatCurrency(item.amount)}
+                </p>
+              </div>
+              <div class="flex items-center space-x-1">
+                <button onclick="editTransaction('${item.id}')" title="Edit" class="p-1.5 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-slate-800 transition">
+                  <i data-lucide="edit-3" class="w-4 h-4"></i>
+                </button>
+                <button onclick="deleteTransaction('${item.id}')" title="Delete" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition">
+                  <i data-lucide="trash" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      lucide.createIcons();
+    }
+
+    // Modal Operations
+    function openModal(isEdit = false, item = null) {
+      txModal.classList.remove('hidden');
+      txModal.classList.add('flex');
+
+      if (isEdit && item) {
+        modalTitle.textContent = 'Edit Transaction';
+        editIdInput.value = item.id;
+        amountInput.value = item.amount;
+        titleInput.value = item.title;
+        categorySelect.value = item.category;
+        dateInput.value = item.date;
+        setModalType(item.type);
+      } else {
+        modalTitle.textContent = 'Add Transaction';
+        editIdInput.value = '';
+        amountInput.value = '';
+        titleInput.value = '';
+        categorySelect.value = 'Food';
+        dateInput.value = new Date().toISOString().split('T')[0];
+        setModalType('expense');
+      }
+    }
+
+    function closeModal() {
+      txModal.classList.add('hidden');
+      txModal.classList.remove('flex');
+    }
+
+    function setModalType(type) {
+      currentModalType = type;
+      if (type === 'expense') {
+        typeExpenseBtn.className = 'py-2 text-xs font-bold rounded-lg transition bg-rose-600 text-white flex items-center justify-center space-x-1.5';
+        typeIncomeBtn.className = 'py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white flex items-center justify-center space-x-1.5';
+      } else {
+        typeIncomeBtn.className = 'py-2 text-xs font-bold rounded-lg transition bg-emerald-600 text-white flex items-center justify-center space-x-1.5';
+        typeExpenseBtn.className = 'py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white flex items-center justify-center space-x-1.5';
+      }
+    }
+
+    // Save or Update handler
+    txForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const amount = parseFloat(amountInput.value);
+      const title = titleInput.value.trim();
+      const category = categorySelect.value;
+      const date = dateInput.value;
+      const editId = editIdInput.value;
+
+      if (!amount || isNaN(amount) || !title) return;
+
+      if (editId) {
+        // Update existing item
+        const index = transactions.findIndex(t => t.id === editId);
+        if (index !== -1) {
+          transactions[index] = {
+            id: editId,
+            title,
+            amount,
+            category,
+            date,
+            type: currentModalType
+          };
+        }
+      } else {
+        // Add new item
+        const newRecord = {
+          id: 'tx-' + Date.now(),
+          title,
+          amount,
+          category,
+          date,
+          type: currentModalType
+        };
+        transactions.unshift(newRecord);
+      }
+
+      saveToLocalStorage();
+      closeModal();
+      render();
+    });
+
+    // Delete item
+    window.deleteTransaction = function(id) {
+      if (confirm('Delete this transaction?')) {
+        transactions = transactions.filter(t => t.id !== id);
+        saveToLocalStorage();
+        render();
+      }
+    };
+
+    // Edit item
+    window.editTransaction = function(id) {
+      const item = transactions.find(t => t.id === id);
+      if (item) {
+        openModal(true, item);
+      }
+    };
+
+    // Event Listeners
+    function setupEventListeners() {
+      openAddModalBtn.addEventListener('click', () => openModal(false));
+      closeModalBtn.addEventListener('click', closeModal);
+      cancelModalBtn.addEventListener('click', closeModal);
+
+      typeExpenseBtn.addEventListener('click', () => setModalType('expense'));
+      typeIncomeBtn.addEventListener('click', () => setModalType('income'));
+
+      searchInput.addEventListener('input', render);
+      typeFilter.addEventListener('change', render);
+
+      // Category Pill Click
+      categoryPills.forEach(pill => {
+        pill.addEventListener('click', () => {
+          categoryPills.forEach(p => {
+            p.classList.remove('bg-indigo-600', 'text-white');
+            p.classList.add('bg-slate-800', 'text-slate-300');
+          });
+          pill.classList.remove('bg-slate-800', 'text-slate-300');
+          pill.classList.add('bg-indigo-600', 'text-white');
+
+          currentCategoryFilter = pill.getAttribute('data-cat');
+          render();
+        });
+      });
+
+      // Clear all
+      clearAllBtn.addEventListener('click', () => {
+        if (confirm('Clear all stored transactions? This cannot be undone.')) {
+          transactions = [];
+          saveToLocalStorage();
+          render();
+        }
+      });
+
+      // Export JSON backup
+      exportBtn.addEventListener('click', () => {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(transactions, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `expensify_backup_${new Date().toISOString().split('T')[0]}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+      });
+
+      // Close modal on outside click
+      txModal.addEventListener('click', (e) => {
+        if (e.target === txModal) closeModal();
+      });
+    }
+
+    // Safety helper
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    // Launch
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
