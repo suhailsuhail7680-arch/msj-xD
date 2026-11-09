@@ -14,12 +14,8 @@ import android.os.IBinder
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.view.Gravity
-import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import android.widget.FrameLayout
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -45,7 +41,6 @@ import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
@@ -57,10 +52,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -91,7 +83,6 @@ import com.example.data.AimPreferencesManager
 import com.example.engine.PoolPhysicsEngine
 import com.example.model.AimCalculationResult
 import com.example.model.AimConfiguration
-import com.example.model.Pocket
 import com.example.model.Vector2D
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DarkBackground
@@ -108,7 +99,7 @@ import com.example.ui.theme.TextSecondary
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
- * Custom lifecycle owner to host Jetpack Compose in an Android WindowManager Overlay Service.
+ * Lifecycle owner for hosting Compose Views in an overlay Window.
  */
 class OverlayLifecycleOwner : LifecycleOwner, ViewModelStoreOwner, SavedStateRegistryOwner {
     private val lifecycleRegistry = LifecycleRegistry(this)
@@ -201,7 +192,7 @@ class AimOverlayService : Service() {
 
         val notification: Notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("msj xD Aim Tool Active")
-            .setContentText("Aim guidance is running over your pool game. Tap to open controls.")
+            .setContentText("Aim guidance & 3-bank lines active over 8 Ball Pool. Tap to configure.")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentIntent(pendingIntent)
             .addAction(R.drawable.ic_launcher_foreground, "Stop Tool", stopPendingIntent)
@@ -374,7 +365,7 @@ class AimOverlayService : Service() {
 }
 
 /**
- * Interactive full-screen canvas rendering the trajectory lines and precision ball handles
+ * Interactive full-screen canvas rendering trajectory lines, 3-bank reflections and draggable handles.
  */
 @Composable
 fun OverlayAimCanvas(
@@ -410,13 +401,13 @@ fun OverlayAimCanvas(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Draw guidelines & cushion reflections
         if (config.isGuidelineVisible) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val primaryColor = config.primaryColor.color.copy(alpha = config.opacity)
                 val secondaryColor = config.secondaryColor.color.copy(alpha = config.opacity)
                 val strokeWidth = config.lineThickness.dp.toPx()
                 val ballRadius = config.ballRadius.dp.toPx()
+                val effectiveLineLength = if (config.showExtendedLines) config.lineLength * 1.5f else config.lineLength
 
                 // Draw table pocket indicators
                 if (config.showPocketGuides) {
@@ -439,7 +430,7 @@ fun OverlayAimCanvas(
                 val cueLineEnd = if (aimResult.directImpactOccurred && aimResult.ghostCueBallPosition != null) {
                     Offset(aimResult.ghostCueBallPosition.x, aimResult.ghostCueBallPosition.y)
                 } else {
-                    Offset(cuePos.x + cueDir.x * config.lineLength, cuePos.y + cueDir.y * config.lineLength)
+                    Offset(cuePos.x + cueDir.x * effectiveLineLength, cuePos.y + cueDir.y * effectiveLineLength)
                 }
 
                 drawLine(
@@ -458,11 +449,11 @@ fun OverlayAimCanvas(
                         style = Stroke(width = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f)))
                     )
 
-                    // 3. Object ball trajectory line toward pocket
+                    // 3. Object ball trajectory line
                     aimResult.objectBallTrajectory?.let { objDir ->
                         val objLineEnd = Offset(
-                            objectPos.x + objDir.x * config.lineLength,
-                            objectPos.y + objDir.y * config.lineLength
+                            objectPos.x + objDir.x * effectiveLineLength,
+                            objectPos.y + objDir.y * effectiveLineLength
                         )
                         drawLine(
                             color = secondaryColor,
@@ -488,17 +479,22 @@ fun OverlayAimCanvas(
                     }
                 }
 
-                // 5. Cushion bank reflections
+                // 5. Cushion bank reflections (supports 1, 2, and 3 banks)
                 if (config.showBankShots && aimResult.cushionReflections.isNotEmpty()) {
                     aimResult.cushionReflections.forEach { bounce ->
+                        val bounceColor = when (bounce.bounceNumber) {
+                            1 -> GoldPrimary
+                            2 -> GoldSecondary
+                            else -> CyanAccent
+                        }
                         drawLine(
-                            color = GoldSecondary.copy(alpha = 0.8f),
+                            color = bounceColor.copy(alpha = 0.85f),
                             start = Offset(bounce.hitPoint.x, bounce.hitPoint.y),
                             end = Offset(bounce.endPoint.x, bounce.endPoint.y),
                             strokeWidth = (strokeWidth * 0.85f).coerceAtLeast(2f)
                         )
                         drawCircle(
-                            color = GoldPrimary,
+                            color = bounceColor,
                             radius = 6.dp.toPx(),
                             center = Offset(bounce.hitPoint.x, bounce.hitPoint.y)
                         )
@@ -521,25 +517,11 @@ fun OverlayAimCanvas(
                 .padding(4.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Ball graphic positioned at cuePos
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val centerOffset = Offset(cuePos.x, cuePos.y)
-                drawCircle(
-                    color = Color.White,
-                    radius = config.ballRadius.dp.toPx(),
-                    center = centerOffset
-                )
-                drawCircle(
-                    color = RedDanger,
-                    radius = 5.dp.toPx(),
-                    center = centerOffset
-                )
-                drawCircle(
-                    color = DarkBorder,
-                    radius = config.ballRadius.dp.toPx(),
-                    center = centerOffset,
-                    style = Stroke(width = 2.dp.toPx())
-                )
+                drawCircle(color = Color.White, radius = config.ballRadius.dp.toPx(), center = centerOffset)
+                drawCircle(color = RedDanger, radius = 5.dp.toPx(), center = centerOffset)
+                drawCircle(color = DarkBorder, radius = config.ballRadius.dp.toPx(), center = centerOffset, style = Stroke(width = 2.dp.toPx()))
             }
         }
 
@@ -559,28 +541,16 @@ fun OverlayAimCanvas(
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val centerOffset = Offset(objectPos.x, objectPos.y)
-                drawCircle(
-                    color = GoldPrimary,
-                    radius = config.ballRadius.dp.toPx(),
-                    center = centerOffset
-                )
-                drawCircle(
-                    color = Color.Black,
-                    radius = 9.dp.toPx(),
-                    center = centerOffset
-                )
-                drawCircle(
-                    color = Color.White,
-                    radius = 4.dp.toPx(),
-                    center = centerOffset
-                )
+                drawCircle(color = GoldPrimary, radius = config.ballRadius.dp.toPx(), center = centerOffset)
+                drawCircle(color = Color.Black, radius = 9.dp.toPx(), center = centerOffset)
+                drawCircle(color = Color.White, radius = 4.dp.toPx(), center = centerOffset)
             }
         }
     }
 }
 
 /**
- * Floating draggable HUD controller window
+ * Floating draggable HUD controller window with bank shot selector, angle calculator, and D-pad.
  */
 @Composable
 fun FloatingHudControl(
@@ -613,7 +583,6 @@ fun FloatingHudControl(
         shadowElevation = 8.dp
     ) {
         if (isMinimized) {
-            // Minimized Floating Pill Bubble
             Row(
                 modifier = Modifier
                     .padding(horizontal = 10.dp, vertical = 6.dp)
@@ -635,13 +604,12 @@ fun FloatingHudControl(
                 )
             }
         } else {
-            // Expanded Aim HUD
             Column(
                 modifier = Modifier
-                    .width(260.dp)
+                    .width(270.dp)
                     .padding(12.dp)
             ) {
-                // Header Row
+                // Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -670,43 +638,83 @@ fun FloatingHudControl(
                             onClick = {
                                 prefsManager.updateConfig { it.copy(isGuidelineVisible = !it.isGuidelineVisible) }
                             },
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(30.dp)
                         ) {
                             Icon(
                                 imageVector = if (config.isGuidelineVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                 contentDescription = "Toggle lines",
                                 tint = if (config.isGuidelineVisible) GoldPrimary else TextSecondary,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(17.dp)
                             )
                         }
                         IconButton(
                             onClick = { isMinimizedFlow.value = true },
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(30.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.KeyboardArrowDown,
                                 contentDescription = "Minimize HUD",
                                 tint = TextSecondary,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(17.dp)
                             )
                         }
                         IconButton(
                             onClick = onCloseTool,
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(30.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close overlay",
                                 tint = RedDanger,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(17.dp)
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
-                // Ball Selector: Cue Ball vs Object Ball
+                // Bank Mode Selector (Direct, 2-Bank, 3-Bank)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(DarkSurfaceVariant)
+                        .padding(2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    listOf(
+                        1 to "Direct",
+                        2 to "2-Bank",
+                        3 to "3-Bank"
+                    ).forEach { (bounces, label) ->
+                        val isSelected = config.showBankShots && config.maxBankBounces == bounces
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (isSelected) GoldPrimary else Color.Transparent)
+                                .clickable {
+                                    prefsManager.updateConfig {
+                                        it.copy(showBankShots = true, maxBankBounces = bounces)
+                                    }
+                                }
+                                .padding(vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = label,
+                                color = if (isSelected) DarkBackground else TextSecondary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Ball Switcher
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -720,7 +728,7 @@ fun FloatingHudControl(
                             .clip(RoundedCornerShape(6.dp))
                             .background(if (selectedBall == 0) GoldPrimary else Color.Transparent)
                             .clickable { selectedBallFlow.value = 0 }
-                            .padding(vertical = 6.dp),
+                            .padding(vertical = 5.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -736,7 +744,7 @@ fun FloatingHudControl(
                             .clip(RoundedCornerShape(6.dp))
                             .background(if (selectedBall == 1) GoldPrimary else Color.Transparent)
                             .clickable { selectedBallFlow.value = 1 }
-                            .padding(vertical = 6.dp),
+                            .padding(vertical = 5.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -748,125 +756,86 @@ fun FloatingHudControl(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                // Precision D-Pad Controls for 1px / 5px micro-adjustments
+                // Precision D-Pad Controls
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // D-Pad Up
                     IconButton(
                         onClick = { onNudge(0f, -1f) },
                         modifier = Modifier
-                            .size(34.dp)
+                            .size(32.dp)
                             .clip(RoundedCornerShape(6.dp))
                             .background(DarkSurfaceVariant)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowUp,
-                            contentDescription = "Up",
-                            tint = GoldPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "Up", tint = GoldPrimary, modifier = Modifier.size(18.dp))
                     }
 
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
+                            .padding(vertical = 3.dp),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // D-Pad Left
                         IconButton(
                             onClick = { onNudge(-1f, 0f) },
                             modifier = Modifier
-                                .size(34.dp)
+                                .size(32.dp)
                                 .clip(RoundedCornerShape(6.dp))
                                 .background(DarkSurfaceVariant)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowLeft,
-                                contentDescription = "Left",
-                                tint = GoldPrimary,
-                                modifier = Modifier.size(20.dp)
-                            )
+                            Icon(imageVector = Icons.Default.KeyboardArrowLeft, contentDescription = "Left", tint = GoldPrimary, modifier = Modifier.size(18.dp))
                         }
 
                         Spacer(modifier = Modifier.width(14.dp))
 
-                        // Center Reset
                         IconButton(
                             onClick = onResetBalls,
                             modifier = Modifier
-                                .size(34.dp)
+                                .size(32.dp)
                                 .clip(RoundedCornerShape(6.dp))
                                 .background(DarkSurfaceVariant)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Reset positions",
-                                tint = CyanAccent,
-                                modifier = Modifier.size(18.dp)
-                            )
+                            Icon(imageVector = Icons.Default.Refresh, contentDescription = "Reset positions", tint = CyanAccent, modifier = Modifier.size(17.dp))
                         }
 
                         Spacer(modifier = Modifier.width(14.dp))
 
-                        // D-Pad Right
                         IconButton(
                             onClick = { onNudge(1f, 0f) },
                             modifier = Modifier
-                                .size(34.dp)
+                                .size(32.dp)
                                 .clip(RoundedCornerShape(6.dp))
                                 .background(DarkSurfaceVariant)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowRight,
-                                contentDescription = "Right",
-                                tint = GoldPrimary,
-                                modifier = Modifier.size(20.dp)
-                            )
+                            Icon(imageVector = Icons.Default.KeyboardArrowRight, contentDescription = "Right", tint = GoldPrimary, modifier = Modifier.size(18.dp))
                         }
                     }
 
-                    // D-Pad Down
                     IconButton(
                         onClick = { onNudge(0f, 1f) },
                         modifier = Modifier
-                            .size(34.dp)
+                            .size(32.dp)
                             .clip(RoundedCornerShape(6.dp))
                             .background(DarkSurfaceVariant)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Down",
-                            tint = GoldPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = "Down", tint = GoldPrimary, modifier = Modifier.size(18.dp))
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                // Shot Angle Fine-Tuning Slider
+                // Shot Angle & Steppers
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Aim Angle",
-                        color = TextSecondary,
-                        fontSize = 11.sp
-                    )
-                    Text(
-                        text = "${shotAngle.toInt()}°",
-                        color = GoldPrimary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
-                    )
+                    Text(text = "Shot Angle", color = TextSecondary, fontSize = 11.sp)
+                    Text(text = "${shotAngle.toInt()}°", color = GoldPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
 
                 Slider(
@@ -878,10 +847,9 @@ fun FloatingHudControl(
                         activeTrackColor = GoldPrimary,
                         inactiveTrackColor = DarkBorder
                     ),
-                    modifier = Modifier.height(30.dp)
+                    modifier = Modifier.height(26.dp)
                 )
 
-                // Quick Angle Steppers: -1°, +1°, -5°, +5°
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -895,7 +863,7 @@ fun FloatingHudControl(
                                     val next = (shotAngle + step + 360f) % 360f
                                     onAngleChange(next)
                                 }
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .padding(horizontal = 7.dp, vertical = 3.dp)
                         ) {
                             Text(
                                 text = if (step > 0) "+${step.toInt()}°" else "${step.toInt()}°",

@@ -8,6 +8,7 @@ import com.example.model.Vector2D
 import kotlin.math.abs
 import kotlin.math.acos
 import kotlin.math.atan2
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
 
@@ -17,7 +18,7 @@ class PoolPhysicsEngine {
      * Calculates the aiming trajectory for 8 Ball Pool.
      * Computes the line from Cue Ball along the shot angle, checks for collision with the Object Ball,
      * calculates the ghost cue ball center, the resulting object ball direction, cue deflection tangent line,
-     * and cushion bank rebounds.
+     * accurate cut angles, success probability, and 1-Bank, 2-Bank, and 3-Bank cushion reflections.
      */
     fun calculateAim(
         cuePos: Vector2D,
@@ -41,6 +42,7 @@ class PoolPhysicsEngine {
         var directImpact = false
         var objTrajectory: Vector2D? = null
         var cueDeflection: Vector2D? = null
+        var cutAngleDeg = 0f
 
         if (proj > 0f) {
             // Distance squared from object center to ray
@@ -62,11 +64,15 @@ class PoolPhysicsEngine {
                     val tangent = Vector2D(-impactNormal.y, impactNormal.x)
                     val cueDirDotTangent = dir.dot(tangent)
                     cueDeflection = (tangent * cueDirDotTangent).normalized()
+
+                    // Calculate cut angle between cue ball initial direction and impact normal
+                    val dotVal = dir.dot(impactNormal).coerceIn(-1f, 1f)
+                    cutAngleDeg = Math.toDegrees(acos(dotVal.toDouble())).toFloat()
                 }
             }
         }
 
-        // Cushion Reflections calculation
+        // Cushion Reflections calculation (supports 1-Bank, 2-Bank, and 3-Bank shots)
         val reflections = mutableListOf<CushionReflection>()
         if (config.showBankShots) {
             val startPoint = if (directImpact && ghostCuePos != null) objectPos else cuePos
@@ -75,7 +81,7 @@ class PoolPhysicsEngine {
             calculateCushionBounces(
                 startPoint = startPoint,
                 direction = trajectoryDir,
-                maxBounces = 2,
+                maxBounces = config.maxBankBounces.coerceIn(1, 3),
                 boundsWidth = boundsWidth,
                 boundsHeight = boundsHeight,
                 padding = ballRadius,
@@ -86,6 +92,7 @@ class PoolPhysicsEngine {
         // Check nearest pocket to object ball trajectory
         var nearestPocket: Pocket? = null
         var pocketAngleDiff: Float? = null
+        var successProbability = 0
 
         if (pockets.isNotEmpty()) {
             val activeDir = objTrajectory ?: dir
@@ -101,6 +108,13 @@ class PoolPhysicsEngine {
                     pocketAngleDiff = angleDiff
                 }
             }
+
+            // Calculate estimated pot probability based on alignment and cut angle
+            if (directImpact && pocketAngleDiff != null) {
+                val alignmentPenalty = (pocketAngleDiff * 1.5f).coerceAtMost(60f)
+                val cutAnglePenalty = (cutAngleDeg * 0.4f).coerceAtMost(35f)
+                successProbability = max(0, min(100, (100f - alignmentPenalty - cutAnglePenalty).toInt()))
+            }
         }
 
         return AimCalculationResult(
@@ -114,7 +128,9 @@ class PoolPhysicsEngine {
             cueDeflectionTrajectory = cueDeflection,
             cushionReflections = reflections,
             nearestPocket = nearestPocket,
-            pocketAlignmentAngleDiff = pocketAngleDiff
+            pocketAlignmentAngleDiff = pocketAngleDiff,
+            cutAngleDegrees = cutAngleDeg,
+            shotSuccessProbability = successProbability
         )
     }
 
@@ -178,13 +194,14 @@ class PoolPhysicsEngine {
             // Reflect: R = D - 2*(D·N)*N
             val dot = currDir.dot(hitNormal)
             val bounceDir = (currDir - (hitNormal * (2f * dot))).normalized()
-            val endPoint = hitPoint + (bounceDir * 300f)
+            val endPoint = hitPoint + (bounceDir * 350f)
 
             reflections.add(
                 CushionReflection(
                     hitPoint = hitPoint,
                     bounceVector = bounceDir,
-                    endPoint = endPoint
+                    endPoint = endPoint,
+                    bounceNumber = bounce + 1
                 )
             )
 
@@ -204,9 +221,7 @@ class PoolPhysicsEngine {
         val midX = width / 2f
         val midY = height / 2f
 
-        // When in landscape or portrait, generate the 6 pockets along the perimeter
         return if (width >= height) {
-            // Landscape orientation: 4 corners + 2 center side cushions (top and bottom)
             listOf(
                 Pocket("top_left", Vector2D(left, top)),
                 Pocket("top_mid", Vector2D(midX, top)),
@@ -216,7 +231,6 @@ class PoolPhysicsEngine {
                 Pocket("bottom_right", Vector2D(right, bottom))
             )
         } else {
-            // Portrait orientation: 4 corners + 2 center side cushions (left and right)
             listOf(
                 Pocket("top_left", Vector2D(left, top)),
                 Pocket("top_right", Vector2D(right, top)),

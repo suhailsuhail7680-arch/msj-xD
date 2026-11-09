@@ -13,7 +13,6 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,7 +22,9 @@ import androidx.core.content.ContextCompat
 import com.example.data.AimPreferencesManager
 import com.example.service.AimOverlayService
 import com.example.ui.screens.AboutScreen
+import com.example.ui.screens.AimCalculatorScreen
 import com.example.ui.screens.AimSimulatorScreen
+import com.example.ui.screens.BankShotMasterScreen
 import com.example.ui.screens.FloatingSettingsScreen
 import com.example.ui.screens.HomeScreen
 import com.example.ui.screens.PermissionsSetupScreen
@@ -115,6 +116,18 @@ fun MainAppNavigation(
             }
             Screen.AIM_SIMULATOR -> {
                 AimSimulatorScreen(
+                    prefsManager = prefsManager,
+                    onBack = { currentScreen = Screen.HOME }
+                )
+            }
+            Screen.AIM_CALCULATOR -> {
+                AimCalculatorScreen(
+                    prefsManager = prefsManager,
+                    onBack = { currentScreen = Screen.HOME }
+                )
+            }
+            Screen.BANK_SHOT_MASTER -> {
+                BankShotMasterScreen(
                     prefsManager = prefsManager,
                     onBack = { currentScreen = Screen.HOME }
                 )

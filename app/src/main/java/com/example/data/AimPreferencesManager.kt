@@ -25,11 +25,12 @@ class AimPreferencesManager(context: Context) {
 
     private fun loadConfig(): AimConfiguration {
         val thickness = prefs.getFloat(KEY_THICKNESS, 4f)
-        val length = prefs.getFloat(KEY_LENGTH, 1400f)
+        val length = prefs.getFloat(KEY_LENGTH, 1600f)
         val primaryColorName = prefs.getString(KEY_PRIMARY_COLOR, GuidelineColor.NEON_GOLD.name)
         val secondaryColorName = prefs.getString(KEY_SECONDARY_COLOR, GuidelineColor.ELECTRIC_CYAN.name)
         val opacity = prefs.getFloat(KEY_OPACITY, 0.95f)
         val bankShots = prefs.getBoolean(KEY_BANK_SHOTS, true)
+        val maxBankBounces = prefs.getInt(KEY_MAX_BANK_BOUNCES, 3)
         val pocketGuides = prefs.getBoolean(KEY_POCKET_GUIDES, true)
         val extendedLines = prefs.getBoolean(KEY_EXTENDED_LINES, true)
         val ballRadius = prefs.getFloat(KEY_BALL_RADIUS, 36f)
@@ -56,6 +57,7 @@ class AimPreferencesManager(context: Context) {
             secondaryColor = secondary,
             opacity = opacity,
             showBankShots = bankShots,
+            maxBankBounces = maxBankBounces,
             showPocketGuides = pocketGuides,
             showExtendedLines = extendedLines,
             ballRadius = ballRadius,
@@ -73,6 +75,7 @@ class AimPreferencesManager(context: Context) {
             .putString(KEY_SECONDARY_COLOR, config.secondaryColor.name)
             .putFloat(KEY_OPACITY, config.opacity)
             .putBoolean(KEY_BANK_SHOTS, config.showBankShots)
+            .putInt(KEY_MAX_BANK_BOUNCES, config.maxBankBounces)
             .putBoolean(KEY_POCKET_GUIDES, config.showPocketGuides)
             .putBoolean(KEY_EXTENDED_LINES, config.showExtendedLines)
             .putFloat(KEY_BALL_RADIUS, config.ballRadius)
@@ -89,6 +92,7 @@ class AimPreferencesManager(context: Context) {
         private const val KEY_SECONDARY_COLOR = "secondary_guideline_color"
         private const val KEY_OPACITY = "guideline_opacity"
         private const val KEY_BANK_SHOTS = "show_bank_shots"
+        private const val KEY_MAX_BANK_BOUNCES = "max_bank_bounces"
         private const val KEY_POCKET_GUIDES = "show_pocket_guides"
         private const val KEY_EXTENDED_LINES = "show_extended_lines"
         private const val KEY_BALL_RADIUS = "ball_radius"

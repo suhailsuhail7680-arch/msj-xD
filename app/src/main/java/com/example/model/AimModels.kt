@@ -48,11 +48,12 @@ enum class GuidelineColor(val title: String, val color: Color, val hex: String) 
 
 data class AimConfiguration(
     val lineThickness: Float = 4f,
-    val lineLength: Float = 1400f,
+    val lineLength: Float = 1600f,
     val primaryColor: GuidelineColor = GuidelineColor.NEON_GOLD,
     val secondaryColor: GuidelineColor = GuidelineColor.ELECTRIC_CYAN,
     val opacity: Float = 0.95f,
     val showBankShots: Boolean = true,
+    val maxBankBounces: Int = 3, // 1-Bank, 2-Bank, or 3-Bank shots
     val showPocketGuides: Boolean = true,
     val showExtendedLines: Boolean = true,
     val ballRadius: Float = 36f,
@@ -75,7 +76,8 @@ data class Pocket(
 data class CushionReflection(
     val hitPoint: Vector2D,
     val bounceVector: Vector2D,
-    val endPoint: Vector2D
+    val endPoint: Vector2D,
+    val bounceNumber: Int = 1
 )
 
 data class AimCalculationResult(
@@ -89,5 +91,7 @@ data class AimCalculationResult(
     val cueDeflectionTrajectory: Vector2D?,
     val cushionReflections: List<CushionReflection>,
     val nearestPocket: Pocket?,
-    val pocketAlignmentAngleDiff: Float?
+    val pocketAlignmentAngleDiff: Float?,
+    val cutAngleDegrees: Float = 0f,
+    val shotSuccessProbability: Int = 0
 )

@@ -1,13 +1,12 @@
 package com.example.ui.screens
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,25 +25,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Adjust
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.TouchApp
-import androidx.compose.material.icons.filled.Vibration
-import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -53,7 +48,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -81,7 +75,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.AimPreferencesManager
@@ -89,7 +82,6 @@ import com.example.engine.PoolPhysicsEngine
 import com.example.model.AimConfiguration
 import com.example.model.GuidelineColor
 import com.example.model.Vector2D
-import com.example.service.AimOverlayService
 import com.example.ui.theme.CyanAccent
 import com.example.ui.theme.DarkBackground
 import com.example.ui.theme.DarkBorder
@@ -103,11 +95,14 @@ import com.example.ui.theme.RedDanger
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
+import kotlin.math.roundToInt
 
 enum class Screen {
     SPLASH,
     HOME,
     AIM_SIMULATOR,
+    AIM_CALCULATOR,
+    BANK_SHOT_MASTER,
     FLOATING_SETTINGS,
     PERMISSIONS_SETUP,
     SETTINGS,
@@ -120,7 +115,7 @@ enum class Screen {
 @Composable
 fun SplashScreen(onNavigateHome: () -> Unit) {
     LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(1600)
+        kotlinx.coroutines.delay(1500)
         onNavigateHome()
     }
 
@@ -165,7 +160,7 @@ fun SplashScreen(onNavigateHome: () -> Unit) {
             )
 
             Text(
-                text = "PRECISION 8 BALL POOL AIM ASSISTANT",
+                text = "PROFESSIONAL 8 BALL POOL AIM TOOL",
                 color = TextSecondary,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -188,7 +183,7 @@ fun SplashScreen(onNavigateHome: () -> Unit) {
 }
 
 // -----------------------------------------------------------------------------------------
-// 2. HOME SCREEN
+// 2. PROFESSIONAL HOME SCREEN (Aim, Calculate, Master)
 // -----------------------------------------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -213,7 +208,7 @@ fun HomeScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "msj xD",
+                            text = "msj xD PRO",
                             fontWeight = FontWeight.Bold,
                             color = GoldPrimary
                         )
@@ -247,10 +242,7 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                    border = androidx.compose.foundation.BorderStroke(
-                        1.5.dp,
-                        if (isServiceActive) GoldPrimary else DarkBorder
-                    )
+                    border = BorderStroke(1.5.dp, if (isServiceActive) GoldPrimary else DarkBorder)
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Row(
@@ -260,14 +252,14 @@ fun HomeScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = if (isServiceActive) "AIM TOOL IS ACTIVE" else "AIM TOOL IS STANDBY",
+                                    text = if (isServiceActive) "FLOATING AIM TOOL ACTIVE" else "FLOATING AIM TOOL STANDBY",
                                     color = if (isServiceActive) GoldPrimary else TextSecondary,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
+                                    fontSize = 11.sp,
                                     letterSpacing = 1.sp
                                 )
                                 Text(
-                                    text = "Floating 8 Pool Assistant",
+                                    text = "Bloro 8 Pool Guidance",
                                     color = TextPrimary,
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
@@ -294,9 +286,9 @@ fun HomeScreen(
 
                         Text(
                             text = if (isServiceActive) {
-                                "The overlay is currently rendering over your screen. Open 8 Ball Pool to use live precision guides and bank cushions."
+                                "The overlay is active over your screen. Launch 8 Ball Pool now for live trajectories, 2-Bank & 3-Bank reflections!"
                             } else {
-                                "Turn ON to display the movable HUD and trajectory guidelines over 8 Ball Pool."
+                                "Enable the floating overlay to play with precision guideline assistance, or use the In-App Aim Simulator below."
                             },
                             color = TextSecondary,
                             fontSize = 13.sp,
@@ -326,7 +318,7 @@ fun HomeScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = if (isServiceActive) "STOP FLOATING TOOL" else "START FLOATING TOOL",
+                                text = if (isServiceActive) "STOP FLOATING OVERLAY" else "LAUNCH FLOATING OVERLAY",
                                 color = if (isServiceActive) Color.White else OnGold,
                                 fontWeight = FontWeight.Bold
                             )
@@ -335,7 +327,7 @@ fun HomeScreen(
                 }
             }
 
-            // Quick Permission Status Alert
+            // Quick Permission Status Alert if denied
             if (!hasOverlayPermission) {
                 item {
                     Card(
@@ -344,7 +336,7 @@ fun HomeScreen(
                             .clickable { onNavigate(Screen.PERMISSIONS_SETUP) },
                         shape = RoundedCornerShape(14.dp),
                         colors = CardDefaults.cardColors(containerColor = Color(0xFF261D10)),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, GoldSecondary)
+                        border = BorderStroke(1.dp, GoldSecondary)
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),
@@ -359,13 +351,13 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Permission Required",
+                                    text = "Android 16 Permission Setup",
                                     color = GoldSecondary,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp
                                 )
                                 Text(
-                                    text = "Tap to grant 'Display over other apps' to allow the floating tool.",
+                                    text = "Tap to grant 'Display over other apps' on your Infinix Note 50s.",
                                     color = TextSecondary,
                                     fontSize = 12.sp
                                 )
@@ -375,24 +367,24 @@ fun HomeScreen(
                 }
             }
 
-            // Main Menu Grid / Cards
+            // SECTION 1: AIM SECTION
             item {
                 Text(
-                    text = "AIMING TOOLS & FEATURES",
-                    color = TextSecondary,
-                    fontSize = 11.sp,
+                    text = "AIM SECTION",
+                    color = GoldPrimary,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
-                    modifier = Modifier.padding(top = 6.dp)
+                    modifier = Modifier.padding(top = 8.dp)
                 )
             }
 
             item {
                 FeatureMenuCard(
                     icon = Icons.Default.Adjust,
-                    title = "Interactive Table Simulator",
-                    subtitle = "Practice cue aiming, pocket angles and 2-cushion bank bounces directly in-app.",
-                    badge = "PRACTICE",
+                    title = "Realistic Table Simulator",
+                    subtitle = "Interactive 8 Ball Pool table with drag handles, pocket prediction, and ghost ball contact.",
+                    badge = "SMART AIM",
                     onClick = { onNavigate(Screen.AIM_SIMULATOR) }
                 )
             }
@@ -400,19 +392,63 @@ fun HomeScreen(
             item {
                 FeatureMenuCard(
                     icon = Icons.Default.Layers,
-                    title = "Floating Tool Customization",
-                    subtitle = "Adjust line thickness, laser colors, guideline length, and pocket visibility.",
-                    badge = "CUSTOMIZE",
+                    title = "Extended Line & Visuals",
+                    subtitle = "Toggle extended guidelines, line thickness, neon colors, and pocket markers.",
+                    badge = "EXTENDED LINE",
                     onClick = { onNavigate(Screen.FLOATING_SETTINGS) }
+                )
+            }
+
+            // SECTION 2: CALCULATE SECTION
+            item {
+                Text(
+                    text = "CALCULATE SECTION",
+                    color = CyanAccent,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+
+            item {
+                FeatureMenuCard(
+                    icon = Icons.Default.Calculate,
+                    title = "Precision Angle Calculator",
+                    subtitle = "Measure cut angles, ball impact deflection, shot direction, and pot probability.",
+                    badge = "CALCULATOR",
+                    onClick = { onNavigate(Screen.AIM_CALCULATOR) }
+                )
+            }
+
+            // SECTION 3: MASTER SECTION
+            item {
+                Text(
+                    text = "MASTER SECTION",
+                    color = GoldSecondary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+
+            item {
+                FeatureMenuCard(
+                    icon = Icons.Default.Speed,
+                    title = "2-Bank & 3-Bank Shot Master",
+                    subtitle = "Calculate table cushion rebounds with geometric angles for advanced trick shots.",
+                    badge = "3-BANK SHOT",
+                    onClick = { onNavigate(Screen.BANK_SHOT_MASTER) }
                 )
             }
 
             item {
                 FeatureMenuCard(
                     icon = Icons.Default.Security,
-                    title = "Android 16 Permissions & Setup",
-                    subtitle = "Manage overlay permissions, notifications, and battery optimization for Infinix Note 50s.",
-                    badge = "SYSTEM",
+                    title = "Infinix Note 50s Setup",
+                    subtitle = "Android 16 permissions, background battery whitelist, and notification settings.",
+                    badge = "ANDROID 16",
                     onClick = { onNavigate(Screen.PERMISSIONS_SETUP) }
                 )
             }
@@ -421,7 +457,7 @@ fun HomeScreen(
                 FeatureMenuCard(
                     icon = Icons.Default.Info,
                     title = "About msj xD",
-                    subtitle = "100% Free, unlimited aiming tool inspired by Bloro 8 Pool by WIND STUDIO.",
+                    subtitle = "100% Free, unlimited, offline-capable 8 Ball Pool assistant. No paywalls.",
                     badge = "FREE",
                     onClick = { onNavigate(Screen.ABOUT) }
                 )
@@ -448,7 +484,7 @@ fun FeatureMenuCard(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
+        border = BorderStroke(1.dp, DarkBorder)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -508,7 +544,7 @@ fun FeatureMenuCard(
 }
 
 // -----------------------------------------------------------------------------------------
-// 3. IN-APP AIM SIMULATOR & PRACTICE SCREEN
+// 3. SMART AIM SYSTEM (REALISTIC 8 BALL POOL TABLE SIMULATOR)
 // -----------------------------------------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -530,7 +566,7 @@ fun AimSimulatorScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Aim Simulator",
+                        text = "Smart Aim Table",
                         fontWeight = FontWeight.Bold,
                         color = GoldPrimary
                     )
@@ -572,10 +608,10 @@ fun AimSimulatorScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(16.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF0F201B)) // Classic dark green felt
-                    .border(4.dp, Color(0xFF382315), RoundedCornerShape(16.dp)) // Wood cushion border
+                    .padding(14.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color(0xFF0F201B)) // Realistic felt
+                    .border(5.dp, Color(0xFF382315), RoundedCornerShape(18.dp))
             ) {
                 androidx.compose.foundation.layout.BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                     val width = constraints.maxWidth.toFloat()
@@ -630,20 +666,21 @@ fun AimSimulatorScreen(
                                 color = if (isTarget) GoldPrimary else DarkBorder,
                                 radius = 22.dp.toPx(),
                                 center = Offset(pocket.position.x, pocket.position.y),
-                                style = Stroke(width = if (isTarget) 3.dp.toPx() else 1.dp.toPx())
+                                style = Stroke(width = if (isTarget) 3.5.dp.toPx() else 1.dp.toPx())
                             )
                         }
 
                         val ballRadius = config.ballRadius.dp.toPx()
                         val primaryColor = config.primaryColor.color
                         val secondaryColor = config.secondaryColor.color
+                        val effectiveLength = if (config.showExtendedLines) config.lineLength * 1.5f else config.lineLength
 
                         // 2. Direct Cue Trajectory Line
                         val cueDir = aimResult.aimDirection
                         val cueEnd = if (aimResult.directImpactOccurred && aimResult.ghostCueBallPosition != null) {
                             Offset(aimResult.ghostCueBallPosition.x, aimResult.ghostCueBallPosition.y)
                         } else {
-                            Offset(cuePos.x + cueDir.x * config.lineLength, cuePos.y + cueDir.y * config.lineLength)
+                            Offset(cuePos.x + cueDir.x * effectiveLength, cuePos.y + cueDir.y * effectiveLength)
                         }
                         drawLine(
                             color = primaryColor,
@@ -655,7 +692,7 @@ fun AimSimulatorScreen(
                         // 3. Ghost Ball and Object Trajectory
                         if (aimResult.directImpactOccurred && aimResult.ghostCueBallPosition != null) {
                             drawCircle(
-                                color = Color.White.copy(alpha = 0.4f),
+                                color = Color.White.copy(alpha = 0.45f),
                                 radius = ballRadius,
                                 center = Offset(aimResult.ghostCueBallPosition.x, aimResult.ghostCueBallPosition.y),
                                 style = Stroke(width = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f)))
@@ -663,8 +700,8 @@ fun AimSimulatorScreen(
 
                             aimResult.objectBallTrajectory?.let { objDir ->
                                 val objEnd = Offset(
-                                    objPos.x + objDir.x * config.lineLength,
-                                    objPos.y + objDir.y * config.lineLength
+                                    objPos.x + objDir.x * effectiveLength,
+                                    objPos.y + objDir.y * effectiveLength
                                 )
                                 drawLine(
                                     color = secondaryColor,
@@ -675,17 +712,22 @@ fun AimSimulatorScreen(
                             }
                         }
 
-                        // 4. Cushion Bank Reflections
+                        // 4. Cushion Bank Reflections (1, 2, or 3 banks)
                         if (config.showBankShots) {
                             aimResult.cushionReflections.forEach { bounce ->
+                                val bounceColor = when (bounce.bounceNumber) {
+                                    1 -> GoldPrimary
+                                    2 -> GoldSecondary
+                                    else -> CyanAccent
+                                }
                                 drawLine(
-                                    color = GoldSecondary,
+                                    color = bounceColor,
                                     start = Offset(bounce.hitPoint.x, bounce.hitPoint.y),
                                     end = Offset(bounce.endPoint.x, bounce.endPoint.y),
                                     strokeWidth = (config.lineThickness * 0.85f).dp.toPx()
                                 )
                                 drawCircle(
-                                    color = GoldPrimary,
+                                    color = bounceColor,
                                     radius = 6.dp.toPx(),
                                     center = Offset(bounce.hitPoint.x, bounce.hitPoint.y)
                                 )
@@ -693,39 +735,45 @@ fun AimSimulatorScreen(
                         }
 
                         // 5. Draw Cue Ball
-                        drawCircle(
-                            color = Color.White,
-                            radius = ballRadius,
-                            center = Offset(cuePos.x, cuePos.y)
-                        )
-                        drawCircle(
-                            color = RedDanger,
-                            radius = 4.dp.toPx(),
-                            center = Offset(cuePos.x, cuePos.y)
-                        )
+                        drawCircle(color = Color.White, radius = ballRadius, center = Offset(cuePos.x, cuePos.y))
+                        drawCircle(color = RedDanger, radius = 4.dp.toPx(), center = Offset(cuePos.x, cuePos.y))
 
                         // 6. Draw Object Ball (8-Ball Style)
-                        drawCircle(
-                            color = Color(0xFF1E212B),
-                            radius = ballRadius,
-                            center = Offset(objPos.x, objPos.y)
-                        )
-                        drawCircle(
-                            color = Color.White,
-                            radius = ballRadius * 0.45f,
-                            center = Offset(objPos.x, objPos.y)
-                        )
+                        drawCircle(color = Color(0xFF1E212B), radius = ballRadius, center = Offset(objPos.x, objPos.y))
+                        drawCircle(color = Color.White, radius = ballRadius * 0.45f, center = Offset(objPos.x, objPos.y))
                     }
 
-                    // Quick on-canvas instructions
-                    Text(
-                        text = "Drag balls on table to reposition • Adjust angle below",
-                        color = TextSecondary.copy(alpha = 0.7f),
-                        fontSize = 11.sp,
+                    // On-screen telemetry banner
+                    Row(
                         modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 8.dp)
-                    )
+                            .align(Alignment.TopCenter)
+                            .padding(top = 10.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(DarkBackground.copy(alpha = 0.85f))
+                            .border(1.dp, GoldPrimary.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Angle: ${shotAngle.toInt()}°",
+                            color = GoldPrimary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                        Text(
+                            text = "Cut: ${aimResult.cutAngleDegrees.roundToInt()}°",
+                            color = CyanAccent,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                        Text(
+                            text = "Pot: ${aimResult.shotSuccessProbability}%",
+                            color = if (aimResult.shotSuccessProbability > 60) GreenSuccess else GoldSecondary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                    }
                 }
             }
 
@@ -733,10 +781,10 @@ fun AimSimulatorScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
+                border = BorderStroke(1.dp, DarkBorder)
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     // Ball Switcher
@@ -781,7 +829,7 @@ fun AimSimulatorScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     // Angle Slider & Controls
                     Row(
@@ -789,17 +837,8 @@ fun AimSimulatorScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Shot Aim Direction",
-                            color = TextSecondary,
-                            fontSize = 12.sp
-                        )
-                        Text(
-                            text = "${shotAngle.toInt()}°",
-                            color = GoldPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
+                        Text(text = "Shot Aim Direction", color = TextSecondary, fontSize = 12.sp)
+                        Text(text = "${shotAngle.toInt()}°", color = GoldPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
 
                     Slider(
@@ -822,7 +861,7 @@ fun AimSimulatorScreen(
                                 onClick = { shotAngle = (shotAngle + step + 360f) % 360f },
                                 colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceVariant),
                                 shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.weight(1f).padding(horizontal = 4.dp)
+                                modifier = Modifier.weight(1f).padding(horizontal = 3.dp)
                             ) {
                                 Text(
                                     text = if (step > 0) "+${step.toInt()}°" else "${step.toInt()}°",
@@ -840,34 +879,51 @@ fun AimSimulatorScreen(
 }
 
 // -----------------------------------------------------------------------------------------
-// 4. FLOATING TOOL CUSTOMIZATION SCREEN
+// 4. AIM CALCULATOR SCREEN (Angle Calculator & Direction Metrics)
 // -----------------------------------------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FloatingSettingsScreen(
+fun AimCalculatorScreen(
     prefsManager: AimPreferencesManager,
     onBack: () -> Unit
 ) {
     BackHandler { onBack() }
     val config by prefsManager.configFlow.collectAsState()
+    val physicsEngine = remember { PoolPhysicsEngine() }
+
+    var cueX by remember { mutableFloatStateOf(200f) }
+    var cueY by remember { mutableFloatStateOf(400f) }
+    var objX by remember { mutableFloatStateOf(450f) }
+    var objY by remember { mutableFloatStateOf(350f) }
+    var testAngle by remember { mutableFloatStateOf(0f) }
+
+    val pockets = remember { physicsEngine.createTablePockets(800f, 600f) }
+    val aimResult = remember(cueX, cueY, objX, objY, testAngle, config) {
+        physicsEngine.calculateAim(
+            cuePos = Vector2D(cueX, cueY),
+            objectPos = Vector2D(objX, objY),
+            shotAngleDeg = testAngle,
+            config = config,
+            boundsWidth = 800f,
+            boundsHeight = 600f,
+            pockets = pockets
+        )
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "Guideline Customization",
-                        fontWeight = FontWeight.Bold,
-                        color = GoldPrimary
-                    )
-                },
+                title = { Text(text = "Aim Angle Calculator", fontWeight = FontWeight.Bold, color = GoldPrimary) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = TextPrimary
-                        )
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        cueX = 200f; cueY = 400f; objX = 450f; objY = 350f; testAngle = 0f
+                    }) {
+                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "Reset values", tint = GoldPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
@@ -884,12 +940,307 @@ fun FloatingSettingsScreen(
         ) {
             item {
                 Spacer(modifier = Modifier.height(4.dp))
+                // Mathematical telemetry metrics
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    border = BorderStroke(1.dp, CyanAccent)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(text = "SHOT METRICS & PREDICTION", color = CyanAccent, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            MetricBox(title = "Cut Angle", value = "${aimResult.cutAngleDegrees.roundToInt()}°", color = GoldPrimary)
+                            MetricBox(title = "Aim Direction", value = "${testAngle.roundToInt()}°", color = TextPrimary)
+                            MetricBox(title = "Pot Chance", value = "${aimResult.shotSuccessProbability}%", color = GreenSuccess)
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = if (aimResult.directImpactOccurred) {
+                                "Collision detected! Ghost ball placed at (${aimResult.ghostCueBallPosition?.x?.roundToInt()}, ${aimResult.ghostCueBallPosition?.y?.roundToInt()}). Object ball deflects toward ${aimResult.nearestPocket?.id ?: "rail"}."
+                            } else {
+                                "Adjust the aim angle slider to target the object ball."
+                            },
+                            color = TextSecondary,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            }
+
+            // Aim Direction Angle Slider
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    border = BorderStroke(1.dp, DarkBorder)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(text = "Adjust Shot Direction Angle", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(text = "${testAngle.toInt()}°", color = GoldPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+
+                        Slider(
+                            value = testAngle,
+                            onValueChange = { testAngle = it },
+                            valueRange = 0f..360f,
+                            colors = SliderDefaults.colors(thumbColor = GoldPrimary, activeTrackColor = GoldPrimary, inactiveTrackColor = DarkBorder)
+                        )
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(0f, 45f, 90f, 180f, 270f).forEach { preset ->
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(DarkSurfaceVariant)
+                                        .clickable { testAngle = preset }
+                                        .padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(text = "${preset.toInt()}°", color = GoldPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Ball Position Controls
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    border = BorderStroke(1.dp, DarkBorder)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(text = "Ball Distance & Separation", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        val dist = Vector2D(cueX, cueY).distanceTo(Vector2D(objX, objY)).roundToInt()
+                        Text(text = "Current Ball Distance: $dist px", color = TextSecondary, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp, bottom = 12.dp))
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Button(
+                                onClick = { objX = (objX + 20f).coerceAtMost(700f) },
+                                colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceVariant),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(text = "Separate Balls", color = GoldPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Button(
+                                onClick = { objX = (objX - 20f).coerceAtLeast(cueX + 80f) },
+                                colors = ButtonDefaults.buttonColors(containerColor = DarkSurfaceVariant),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(text = "Bring Closer", color = GoldPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun MetricBox(title: String, value: String, color: Color) {
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(DarkSurfaceVariant)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = title, color = TextSecondary, fontSize = 11.sp)
+        Text(text = value, color = color, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(top = 2.dp))
+    }
+}
+
+// -----------------------------------------------------------------------------------------
+// 5. BANK SHOT MASTER SCREEN (2-BANK & 3-BANK SYSTEM)
+// -----------------------------------------------------------------------------------------
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BankShotMasterScreen(
+    prefsManager: AimPreferencesManager,
+    onBack: () -> Unit
+) {
+    BackHandler { onBack() }
+    val config by prefsManager.configFlow.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(text = "Bank Shot Master", fontWeight = FontWeight.Bold, color = GoldPrimary) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
+            )
+        },
+        containerColor = DarkBackground
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = "CUSHION REFLECTION GEOMETRY", color = GoldSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Text(
-                    text = "VISUAL GUIDELINE APPEARANCE",
+                    text = "Bank shots use reflection physics (Angle of Incidence = Angle of Reflection) to project cushion rebounds across the table rails.",
                     color = TextSecondary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+
+            // Bank Bounce Selector (1-Bank, 2-Bank, 3-Bank)
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    border = BorderStroke(1.dp, DarkBorder)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(text = "Maximum Cushion Bounces", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text(text = "Select reflection depth for bank shot guidelines", color = TextSecondary, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp, bottom = 12.dp))
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf(
+                                1 to "1-Bank",
+                                2 to "2-Bank",
+                                3 to "3-Bank"
+                            ).forEach { (bounces, label) ->
+                                val isSelected = config.maxBankBounces == bounces
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (isSelected) GoldPrimary else DarkSurfaceVariant)
+                                        .clickable {
+                                            prefsManager.updateConfig { it.copy(maxBankBounces = bounces, showBankShots = true) }
+                                        }
+                                        .padding(vertical = 12.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = label,
+                                        color = if (isSelected) DarkBackground else TextSecondary,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            item {
+                SettingToggleItem(
+                    title = "Enable Cushion Bank Lines",
+                    subtitle = "Draw bounce lines when hitting cushions in overlay and simulator",
+                    checked = config.showBankShots,
+                    onCheckedChange = { chk ->
+                        prefsManager.updateConfig { it.copy(showBankShots = chk) }
+                    }
+                )
+            }
+
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    border = BorderStroke(1.dp, DarkBorder)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(text = "Pro Tip for Bank Shots:", color = GoldPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "• 1-Bank: Direct cushion bounce into opposite side/corner pocket.\n" +
+                                    "• 2-Bank: Table corner double rail bounce for tight snookers.\n" +
+                                    "• 3-Bank: Triple rail escape shot across the entire table.",
+                            color = TextSecondary,
+                            fontSize = 12.sp,
+                            lineHeight = 18.sp
+                        )
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------------------
+// 6. FLOATING TOOL & EXTENDED LINE SETTINGS SCREEN
+// -----------------------------------------------------------------------------------------
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FloatingSettingsScreen(
+    prefsManager: AimPreferencesManager,
+    onBack: () -> Unit
+) {
+    BackHandler { onBack() }
+    val config by prefsManager.configFlow.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(text = "Guideline & Extended Line", fontWeight = FontWeight.Bold, color = GoldPrimary) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
+            )
+        },
+        containerColor = DarkBackground
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = "EXTENDED AIMING GUIDELINES", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            }
+
+            item {
+                SettingToggleItem(
+                    title = "Extended Line Mode",
+                    subtitle = "Project full table length aiming trajectory without cutoff",
+                    checked = config.showExtendedLines,
+                    onCheckedChange = { checked ->
+                        prefsManager.updateConfig { it.copy(showExtendedLines = checked) }
+                    }
                 )
             }
 
@@ -899,26 +1250,13 @@ fun FloatingSettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
+                    border = BorderStroke(1.dp, DarkBorder)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Cue Shot Guideline Color",
-                            color = TextPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                        Text(
-                            text = "Color of the direct line from cue ball",
-                            color = TextSecondary,
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(top = 2.dp, bottom = 12.dp)
-                        )
+                        Text(text = "Cue Shot Guideline Color", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text(text = "Color of the direct line from cue ball", color = TextSecondary, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp, bottom = 12.dp))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             GuidelineColor.values().forEach { gc ->
                                 val isSelected = config.primaryColor == gc
                                 Box(
@@ -926,23 +1264,12 @@ fun FloatingSettingsScreen(
                                         .size(38.dp)
                                         .clip(CircleShape)
                                         .background(gc.color)
-                                        .border(
-                                            width = if (isSelected) 3.dp else 1.dp,
-                                            color = if (isSelected) Color.White else Color.Transparent,
-                                            shape = CircleShape
-                                        )
-                                        .clickable {
-                                            prefsManager.updateConfig { it.copy(primaryColor = gc) }
-                                        },
+                                        .border(width = if (isSelected) 3.dp else 1.dp, color = if (isSelected) Color.White else Color.Transparent, shape = CircleShape)
+                                        .clickable { prefsManager.updateConfig { it.copy(primaryColor = gc) } },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (isSelected) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = null,
-                                            tint = DarkBackground,
-                                            modifier = Modifier.size(20.dp)
-                                        )
+                                        Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = DarkBackground, modifier = Modifier.size(20.dp))
                                     }
                                 }
                             }
@@ -957,26 +1284,13 @@ fun FloatingSettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
+                    border = BorderStroke(1.dp, DarkBorder)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Object Ball Trajectory Color",
-                            color = TextPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                        Text(
-                            text = "Color of the object ball path toward pocket",
-                            color = TextSecondary,
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(top = 2.dp, bottom = 12.dp)
-                        )
+                        Text(text = "Object Ball Trajectory Color", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text(text = "Color of the object ball path toward pocket", color = TextSecondary, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp, bottom = 12.dp))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             GuidelineColor.values().forEach { gc ->
                                 val isSelected = config.secondaryColor == gc
                                 Box(
@@ -984,23 +1298,12 @@ fun FloatingSettingsScreen(
                                         .size(38.dp)
                                         .clip(CircleShape)
                                         .background(gc.color)
-                                        .border(
-                                            width = if (isSelected) 3.dp else 1.dp,
-                                            color = if (isSelected) Color.White else Color.Transparent,
-                                            shape = CircleShape
-                                        )
-                                        .clickable {
-                                            prefsManager.updateConfig { it.copy(secondaryColor = gc) }
-                                        },
+                                        .border(width = if (isSelected) 3.dp else 1.dp, color = if (isSelected) Color.White else Color.Transparent, shape = CircleShape)
+                                        .clickable { prefsManager.updateConfig { it.copy(secondaryColor = gc) } },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (isSelected) {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = null,
-                                            tint = DarkBackground,
-                                            modifier = Modifier.size(20.dp)
-                                        )
+                                        Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = DarkBackground, modifier = Modifier.size(20.dp))
                                     }
                                 }
                             }
@@ -1015,38 +1318,19 @@ fun FloatingSettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
+                    border = BorderStroke(1.dp, DarkBorder)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "Line Thickness",
-                                color = TextPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
-                            Text(
-                                text = "${config.lineThickness.toInt()} dp",
-                                color = GoldPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(text = "Line Thickness", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(text = "${config.lineThickness.toInt()} dp", color = GoldPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
 
                         Slider(
                             value = config.lineThickness,
-                            onValueChange = { thick ->
-                                prefsManager.updateConfig { it.copy(lineThickness = thick) }
-                            },
+                            onValueChange = { thick -> prefsManager.updateConfig { it.copy(lineThickness = thick) } },
                             valueRange = 2f..10f,
-                            colors = SliderDefaults.colors(
-                                thumbColor = GoldPrimary,
-                                activeTrackColor = GoldPrimary,
-                                inactiveTrackColor = DarkBorder
-                            )
+                            colors = SliderDefaults.colors(thumbColor = GoldPrimary, activeTrackColor = GoldPrimary, inactiveTrackColor = DarkBorder)
                         )
                     }
                 }
@@ -1058,63 +1342,22 @@ fun FloatingSettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
+                    border = BorderStroke(1.dp, DarkBorder)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "Guideline Length",
-                                color = TextPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
-                            Text(
-                                text = "${config.lineLength.toInt()} px",
-                                color = GoldPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(text = "Guideline Length", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(text = "${config.lineLength.toInt()} px", color = GoldPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
 
                         Slider(
                             value = config.lineLength,
-                            onValueChange = { len ->
-                                prefsManager.updateConfig { it.copy(lineLength = len) }
-                            },
-                            valueRange = 600f..2500f,
-                            colors = SliderDefaults.colors(
-                                thumbColor = GoldPrimary,
-                                activeTrackColor = GoldPrimary,
-                                inactiveTrackColor = DarkBorder
-                            )
+                            onValueChange = { len -> prefsManager.updateConfig { it.copy(lineLength = len) } },
+                            valueRange = 600f..3000f,
+                            colors = SliderDefaults.colors(thumbColor = GoldPrimary, activeTrackColor = GoldPrimary, inactiveTrackColor = DarkBorder)
                         )
                     }
                 }
-            }
-
-            // Toggles
-            item {
-                Text(
-                    text = "AIM ENGINE TOGGLES",
-                    color = TextSecondary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
-            }
-
-            item {
-                SettingToggleItem(
-                    title = "Bank Shots & Cushion Reflections",
-                    subtitle = "Calculate table wall rebounds and bounce trajectories",
-                    checked = config.showBankShots,
-                    onCheckedChange = { checked ->
-                        prefsManager.updateConfig { it.copy(showBankShots = checked) }
-                    }
-                )
             }
 
             item {
@@ -1122,9 +1365,7 @@ fun FloatingSettingsScreen(
                     title = "Pocket Direction Guides",
                     subtitle = "Highlight nearest pocket and aim angle divergence",
                     checked = config.showPocketGuides,
-                    onCheckedChange = { checked ->
-                        prefsManager.updateConfig { it.copy(showPocketGuides = checked) }
-                    }
+                    onCheckedChange = { checked -> prefsManager.updateConfig { it.copy(showPocketGuides = checked) } }
                 )
             }
 
@@ -1133,9 +1374,7 @@ fun FloatingSettingsScreen(
                     title = "Haptic Vibration Feedback",
                     subtitle = "Vibrate softly when tapping D-Pad micro-adjustments",
                     checked = config.hapticFeedbackEnabled,
-                    onCheckedChange = { checked ->
-                        prefsManager.updateConfig { it.copy(hapticFeedbackEnabled = checked) }
-                    }
+                    onCheckedChange = { checked -> prefsManager.updateConfig { it.copy(hapticFeedbackEnabled = checked) } }
                 )
             }
 
@@ -1157,7 +1396,7 @@ fun SettingToggleItem(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
+        border = BorderStroke(1.dp, DarkBorder)
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -1165,18 +1404,8 @@ fun SettingToggleItem(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = subtitle,
-                    color = TextSecondary,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(top = 2.dp)
-                )
+                Text(text = title, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text(text = subtitle, color = TextSecondary, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
             }
             Switch(
                 checked = checked,
@@ -1193,7 +1422,7 @@ fun SettingToggleItem(
 }
 
 // -----------------------------------------------------------------------------------------
-// 5. PERMISSIONS & SETUP SCREEN (ANDROID 16 / INFINIX NOTE 50s COMPLIANT)
+// 7. PERMISSIONS & SETUP SCREEN (ANDROID 16 / INFINIX NOTE 50s COMPLIANT)
 // -----------------------------------------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1204,7 +1433,6 @@ fun PermissionsSetupScreen(
     val context = LocalContext.current
     var overlayGranted by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
 
-    // Re-check permissions when returning to activity
     LaunchedEffect(Unit) {
         overlayGranted = Settings.canDrawOverlays(context)
     }
@@ -1212,20 +1440,10 @@ fun PermissionsSetupScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "Android 16 Setup",
-                        fontWeight = FontWeight.Bold,
-                        color = GoldPrimary
-                    )
-                },
+                title = { Text(text = "Android 16 Setup", fontWeight = FontWeight.Bold, color = GoldPrimary) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = TextPrimary
-                        )
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
@@ -1242,43 +1460,32 @@ fun PermissionsSetupScreen(
         ) {
             item {
                 Spacer(modifier = Modifier.height(4.dp))
+                Text(text = "TARGET DEVICE: INFINIX NOTE 50s (ANDROID 16 / SDK 36)", color = GoldSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                 Text(
-                    text = "TARGET DEVICE: INFINIX NOTE 50s (ANDROID 16 / SDK 36)",
-                    color = GoldSecondary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
-                Text(
-                    text = "To draw precision aim lines over 8 Ball Pool without interruption, Android requires the following system authorizations:",
+                    text = "Android 16 requires system authorizations to draw aim overlays over 8 Ball Pool without interruption:",
                     color = TextSecondary,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
 
-            // 1. Overlay Permission (SYSTEM_ALERT_WINDOW)
             item {
                 PermissionCard(
                     title = "Display Over Other Apps",
-                    description = "Mandatory for rendering the floating aim HUD and guideline trajectory over the pool game.",
+                    description = "Mandatory for rendering the floating aim HUD and 3-bank trajectory lines over the pool game.",
                     isGranted = overlayGranted,
                     actionText = if (overlayGranted) "GRANTED" else "GRANT OVERLAY PERMISSION",
                     onAction = {
-                        val intent = Intent(
-                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                            Uri.parse("package:${context.packageName}")
-                        )
+                        val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))
                         context.startActivity(intent)
                     }
                 )
             }
 
-            // 2. Notification Permission (Android 13+ / 16 Foreground Service)
             item {
                 PermissionCard(
                     title = "Foreground Service Notifications",
-                    description = "Required on Android 16 to keep the aim tool alive and provide quick-stop controls from the notification drawer.",
+                    description = "Required on Android 16 to keep the aim tool active with quick-stop actions in the drawer.",
                     isGranted = true,
                     actionText = "SYSTEM CONFIGURED",
                     onAction = {
@@ -1290,11 +1497,10 @@ fun PermissionsSetupScreen(
                 )
             }
 
-            // 3. Battery Optimization Exemption
             item {
                 PermissionCard(
-                    title = "Background Execution Stability",
-                    description = "Prevents Infinix Note 50s battery management from closing the overlay service mid-match.",
+                    title = "Background Battery Exemption",
+                    description = "Prevents Infinix Note 50s battery management from closing the overlay service mid-game.",
                     isGranted = true,
                     actionText = "OPEN BATTERY SETTINGS",
                     onAction = {
@@ -1309,35 +1515,6 @@ fun PermissionsSetupScreen(
                         }
                     }
                 )
-            }
-
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "How to test on Infinix Note 50s:",
-                            color = GoldPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "1. Tap 'Grant Overlay Permission' above and enable 'msj xD'.\n" +
-                                    "2. Return here and press 'Start Floating Tool' on the Home screen.\n" +
-                                    "3. Launch 8 Ball Pool.\n" +
-                                    "4. Move the White cue ball handle to your cue ball and the Black handle to your target object ball.\n" +
-                                    "5. Rotate the aim slider to match your shot direction and sink the ball!",
-                            color = TextSecondary,
-                            fontSize = 12.sp,
-                            lineHeight = 18.sp
-                        )
-                    }
-                }
             }
 
             item {
@@ -1359,66 +1536,37 @@ fun PermissionCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            if (isGranted) GreenSuccess.copy(alpha = 0.5f) else GoldPrimary.copy(alpha = 0.5f)
-        )
+        border = BorderStroke(1.dp, if (isGranted) GreenSuccess.copy(alpha = 0.5f) else GoldPrimary.copy(alpha = 0.5f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = title,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text(text = title, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
                         .background(if (isGranted) GreenSuccess.copy(alpha = 0.15f) else GoldPrimary.copy(alpha = 0.15f))
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
-                    Text(
-                        text = if (isGranted) "READY" else "ACTION REQUIRED",
-                        color = if (isGranted) GreenSuccess else GoldPrimary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp
-                    )
+                    Text(text = if (isGranted) "READY" else "ACTION REQUIRED", color = if (isGranted) GreenSuccess else GoldPrimary, fontWeight = FontWeight.Bold, fontSize = 10.sp)
                 }
             }
 
-            Text(
-                text = description,
-                color = TextSecondary,
-                fontSize = 12.sp,
-                modifier = Modifier.padding(top = 6.dp, bottom = 12.dp)
-            )
+            Text(text = description, color = TextSecondary, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp, bottom = 12.dp))
 
             Button(
                 onClick = onAction,
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isGranted) DarkSurfaceVariant else GoldPrimary
-                ),
+                colors = ButtonDefaults.buttonColors(containerColor = if (isGranted) DarkSurfaceVariant else GoldPrimary),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text(
-                    text = actionText,
-                    color = if (isGranted) TextSecondary else OnGold,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp
-                )
+                Text(text = actionText, color = if (isGranted) TextSecondary else OnGold, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             }
         }
     }
 }
 
 // -----------------------------------------------------------------------------------------
-// 6. SETTINGS SCREEN
+// 8. SETTINGS SCREEN
 // -----------------------------------------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1432,20 +1580,10 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "App Settings",
-                        fontWeight = FontWeight.Bold,
-                        color = GoldPrimary
-                    )
-                },
+                title = { Text(text = "App Settings", fontWeight = FontWeight.Bold, color = GoldPrimary) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = TextPrimary
-                        )
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
@@ -1462,13 +1600,7 @@ fun SettingsScreen(
         ) {
             item {
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "CONTROLLER TUNING",
-                    color = TextSecondary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
+                Text(text = "CONTROLLER PRECISION & STEPPING", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             }
 
             // D-Pad Step Size Selector (1px, 2px, 5px, 10px)
@@ -1477,26 +1609,13 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
+                    border = BorderStroke(1.dp, DarkBorder)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "D-Pad Micro-Step Precision",
-                            color = TextPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                        Text(
-                            text = "Amount of pixels nudged per click on the HUD directional arrows",
-                            color = TextSecondary,
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(top = 2.dp, bottom = 12.dp)
-                        )
+                        Text(text = "D-Pad Micro-Step Precision", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text(text = "Amount of pixels nudged per click on the HUD directional arrows", color = TextSecondary, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp, bottom = 12.dp))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf(1f, 2f, 5f, 10f).forEach { step ->
                                 val isSelected = config.dpadStepPx == step
                                 Box(
@@ -1504,18 +1623,11 @@ fun SettingsScreen(
                                         .weight(1f)
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(if (isSelected) GoldPrimary else DarkSurfaceVariant)
-                                        .clickable {
-                                            prefsManager.updateConfig { it.copy(dpadStepPx = step) }
-                                        }
+                                        .clickable { prefsManager.updateConfig { it.copy(dpadStepPx = step) } }
                                         .padding(vertical = 10.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = "${step.toInt()}px",
-                                        color = if (isSelected) DarkBackground else TextSecondary,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp
-                                    )
+                                    Text(text = "${step.toInt()}px", color = if (isSelected) DarkBackground else TextSecondary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                 }
                             }
                         }
@@ -1529,52 +1641,22 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
+                    border = BorderStroke(1.dp, DarkBorder)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "Ball Radius Calibration",
-                                color = TextPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
-                            Text(
-                                text = "${config.ballRadius.toInt()} px",
-                                color = GoldPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(text = "Ball Radius Calibration", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(text = "${config.ballRadius.toInt()} px", color = GoldPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
 
                         Slider(
                             value = config.ballRadius,
-                            onValueChange = { rad ->
-                                prefsManager.updateConfig { it.copy(ballRadius = rad) }
-                            },
+                            onValueChange = { rad -> prefsManager.updateConfig { it.copy(ballRadius = rad) } },
                             valueRange = 24f..52f,
-                            colors = SliderDefaults.colors(
-                                thumbColor = GoldPrimary,
-                                activeTrackColor = GoldPrimary,
-                                inactiveTrackColor = DarkBorder
-                            )
+                            colors = SliderDefaults.colors(thumbColor = GoldPrimary, activeTrackColor = GoldPrimary, inactiveTrackColor = DarkBorder)
                         )
                     }
                 }
-            }
-
-            item {
-                SettingToggleItem(
-                    title = "Extended Aim Lines",
-                    subtitle = "Project shot trajectory across the entire table",
-                    checked = config.showExtendedLines,
-                    onCheckedChange = { chk ->
-                        prefsManager.updateConfig { it.copy(showExtendedLines = chk) }
-                    }
-                )
             }
 
             item {
@@ -1585,7 +1667,7 @@ fun SettingsScreen(
 }
 
 // -----------------------------------------------------------------------------------------
-// 7. ABOUT SCREEN
+// 9. ABOUT SCREEN
 // -----------------------------------------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1595,20 +1677,10 @@ fun AboutScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "About msj xD",
-                        fontWeight = FontWeight.Bold,
-                        color = GoldPrimary
-                    )
-                },
+                title = { Text(text = "About msj xD", fontWeight = FontWeight.Bold, color = GoldPrimary) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = TextPrimary
-                        )
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
@@ -1634,28 +1706,11 @@ fun AboutScreen(onBack: () -> Unit) {
                         .border(2.dp, GoldPrimary, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "msj",
-                        color = GoldPrimary,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Black
-                    )
+                    Text(text = "msj", color = GoldPrimary, fontSize = 24.sp, fontWeight = FontWeight.Black)
                 }
 
-                Text(
-                    text = "msj xD",
-                    color = TextPrimary,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    modifier = Modifier.padding(top = 12.dp)
-                )
-
-                Text(
-                    text = "Version 1.0 • Android 16 Edition",
-                    color = GoldSecondary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Text(text = "msj xD PRO", color = TextPrimary, fontSize = 26.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(top = 12.dp))
+                Text(text = "Version 2.0 • Android 16 Edition", color = GoldSecondary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
 
             item {
@@ -1663,46 +1718,16 @@ fun AboutScreen(onBack: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
+                    border = BorderStroke(1.dp, DarkBorder)
                 ) {
                     Column(modifier = Modifier.padding(18.dp)) {
-                        Text(
-                            text = "100% Free & Unlimited",
-                            color = GoldPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
-                        )
+                        Text(text = "100% Free & Unlimited", color = GoldPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "msj xD is completely free with zero ads, no subscriptions, no daily limits, and no mandatory logins. All physics calculations run locally on your device with high performance.",
+                            text = "msj xD is completely free with zero ads, no subscriptions, no daily limits, and works offline. Features 3-Bank rebounds, extended guidelines, angle calculator, and floating HUD.",
                             color = TextSecondary,
                             fontSize = 13.sp,
                             lineHeight = 19.sp
-                        )
-                    }
-                }
-            }
-
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, DarkBorder)
-                ) {
-                    Column(modifier = Modifier.padding(18.dp)) {
-                        Text(
-                            text = "Inspired by Bloro 8 Pool",
-                            color = TextPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "Designed for 8 Ball Pool players seeking precise shot trajectory visualization, ghost ball contact mechanics, cushion bank rebounds, and pocket alignment indicators.",
-                            color = TextSecondary,
-                            fontSize = 12.sp,
-                            lineHeight = 18.sp
                         )
                     }
                 }
