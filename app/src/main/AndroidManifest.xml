@@ -28,7 +28,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
             android:label="@string/app_name"
             android:theme="@style/Theme.MyApplication">
             <intent-filter>
@@ -37,12 +37,12 @@
             </intent-filter>
         </activity>
 
-        <!-- Foreground Service for the floating aim assistant overlay -->
+        <!-- Foreground Service for the floating aim assistant overlay with MediaProjection & specialUse -->
         <service
             android:name=".service.AimOverlayService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="specialUse">
+            android:foregroundServiceType="mediaProjection|specialUse">
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Gaming aim-assistant overlay and visual trajectory guidance" />

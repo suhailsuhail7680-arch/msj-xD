@@ -1,14 +1,18 @@
 package com.example
 
+import android.app.Activity
 import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
+import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
@@ -38,6 +42,16 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var prefsManager: AimPreferencesManager
     private var isOverlayRunning by mutableStateOf(false)
+    private var mediaProjectionGranted by mutableStateOf(false)
+
+    private val screenCaptureLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+            mediaProjectionGranted = true
+            launchOverlayService(result.resultCode, result.data!!)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,8 +67,15 @@ class MainActivity : ComponentActivity() {
                     MainAppNavigation(
                         prefsManager = prefsManager,
                         isServiceActive = isOverlayRunning,
+                        onStartPlaying = {
+                            requestAndStartOverlay()
+                        },
                         onToggleService = { enable ->
-                            handleToggleOverlay(enable)
+                            if (enable) {
+                                requestAndStartOverlay()
+                            } else {
+                                stopOverlayService()
+                            }
                         }
                     )
                 }
@@ -76,21 +97,36 @@ class MainActivity : ComponentActivity() {
         isOverlayRunning = isRunning
     }
 
-    private fun handleToggleOverlay(enable: Boolean) {
-        val intent = Intent(this, AimOverlayService::class.java)
-        if (enable) {
-            if (Settings.canDrawOverlays(this)) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    ContextCompat.startForegroundService(this, intent)
-                } else {
-                    startService(intent)
-                }
-                isOverlayRunning = true
-            }
-        } else {
-            stopService(intent)
-            isOverlayRunning = false
+    private fun requestAndStartOverlay() {
+        if (!Settings.canDrawOverlays(this)) {
+            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+            startActivity(intent)
+            return
         }
+
+        // Request MediaProjection consent for Android 16
+        val mediaProjectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        screenCaptureLauncher.launch(mediaProjectionManager.createScreenCaptureIntent())
+    }
+
+    private fun launchOverlayService(resultCode: Int, data: Intent) {
+        val intent = Intent(this, AimOverlayService::class.java).apply {
+            putExtra(AimOverlayService.EXTRA_RESULT_CODE, resultCode)
+            putExtra(AimOverlayService.EXTRA_RESULT_DATA, data)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            ContextCompat.startForegroundService(this, intent)
+        } else {
+            startService(intent)
+        }
+        isOverlayRunning = true
+    }
+
+    private fun stopOverlayService() {
+        val intent = Intent(this, AimOverlayService::class.java)
+        stopService(intent)
+        isOverlayRunning = false
+        mediaProjectionGranted = false
     }
 }
 
@@ -98,6 +134,7 @@ class MainActivity : ComponentActivity() {
 fun MainAppNavigation(
     prefsManager: AimPreferencesManager,
     isServiceActive: Boolean,
+    onStartPlaying: () -> Unit,
     onToggleService: (Boolean) -> Unit
 ) {
     var currentScreen by remember { mutableStateOf(Screen.SPLASH) }
@@ -110,6 +147,7 @@ fun MainAppNavigation(
             Screen.HOME -> {
                 HomeScreen(
                     isServiceActive = isServiceActive,
+                    onStartPlaying = onStartPlaying,
                     onToggleService = onToggleService,
                     onNavigate = { target -> currentScreen = target }
                 )

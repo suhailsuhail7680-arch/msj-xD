@@ -160,7 +160,7 @@ fun SplashScreen(onNavigateHome: () -> Unit) {
             )
 
             Text(
-                text = "PROFESSIONAL 8 BALL POOL AIM TOOL",
+                text = "AIM TOOL - BLORO 8 POOL EDITION",
                 color = TextSecondary,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -183,12 +183,13 @@ fun SplashScreen(onNavigateHome: () -> Unit) {
 }
 
 // -----------------------------------------------------------------------------------------
-// 2. PROFESSIONAL HOME SCREEN (Aim, Calculate, Master)
+// 2. PROFESSIONAL HOME SCREEN (With START PLAYING Hero Button)
 // -----------------------------------------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     isServiceActive: Boolean,
+    onStartPlaying: () -> Unit,
     onToggleService: (Boolean) -> Unit,
     onNavigate: (Screen) -> Unit
 ) {
@@ -208,7 +209,7 @@ fun HomeScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "msj xD PRO",
+                            text = "msj xD AIM TOOL",
                             fontWeight = FontWeight.Bold,
                             color = GoldPrimary
                         )
@@ -237,90 +238,105 @@ fun HomeScreen(
         ) {
             item {
                 Spacer(modifier = Modifier.height(6.dp))
-                // Active Service Master Card
+
+                // Prominent "START PLAYING" Hero Card (Bloro 8 Pool Style)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(22.dp),
                     colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                    border = BorderStroke(1.5.dp, if (isServiceActive) GoldPrimary else DarkBorder)
+                    border = BorderStroke(2.dp, GoldPrimary)
                 ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isServiceActive) GreenSuccess else GoldPrimary)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = if (isServiceActive) "FLOATING AIM TOOL ACTIVE" else "FLOATING AIM TOOL STANDBY",
-                                    color = if (isServiceActive) GoldPrimary else TextSecondary,
+                                    text = if (isServiceActive) "ACTIVE IN 8 BALL POOL" else "READY TO LAUNCH",
+                                    color = if (isServiceActive) GreenSuccess else GoldPrimary,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.sp,
                                     letterSpacing = 1.sp
                                 )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(GoldPrimary.copy(alpha = 0.15f))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
                                 Text(
-                                    text = "Bloro 8 Pool Guidance",
-                                    color = TextPrimary,
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(top = 2.dp)
+                                    text = "2-BANK & 4-BANK",
+                                    color = GoldPrimary,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
-                            Switch(
-                                checked = isServiceActive,
-                                onCheckedChange = { active ->
-                                    if (active && !Settings.canDrawOverlays(context)) {
-                                        onNavigate(Screen.PERMISSIONS_SETUP)
-                                    } else {
-                                        onToggleService(active)
-                                    }
-                                },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = OnGold,
-                                    checkedTrackColor = GoldPrimary,
-                                    uncheckedThumbColor = TextMuted,
-                                    uncheckedTrackColor = DarkSurfaceVariant
-                                )
-                            )
                         }
 
+                        Spacer(modifier = Modifier.height(14.dp))
+
                         Text(
-                            text = if (isServiceActive) {
-                                "The overlay is active over your screen. Launch 8 Ball Pool now for live trajectories, 2-Bank & 3-Bank reflections!"
-                            } else {
-                                "Enable the floating overlay to play with precision guideline assistance, or use the In-App Aim Simulator below."
-                            },
-                            color = TextSecondary,
-                            fontSize = 13.sp,
-                            modifier = Modifier.padding(top = 10.dp)
+                            text = "Play 8 Ball Pool with Pro Aim",
+                            color = TextPrimary,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Screen capture MediaProjection & floating guidelines over 8 Ball Pool. Supports 2-Bank, 4-Bank, and Extended Lines.",
+                            color = TextSecondary,
+                            fontSize = 12.sp,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.padding(top = 6.dp, bottom = 18.dp)
+                        )
 
+                        // Big START PLAYING / STOP Button
                         Button(
                             onClick = {
-                                if (!hasOverlayPermission) {
-                                    onNavigate(Screen.PERMISSIONS_SETUP)
+                                if (isServiceActive) {
+                                    onToggleService(false)
                                 } else {
-                                    onToggleService(!isServiceActive)
+                                    onStartPlaying()
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (isServiceActive) RedDanger else GoldPrimary
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(14.dp),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
                         ) {
                             Icon(
                                 imageVector = if (isServiceActive) Icons.Default.Stop else Icons.Default.PlayArrow,
                                 contentDescription = null,
-                                tint = if (isServiceActive) Color.White else OnGold
+                                tint = if (isServiceActive) Color.White else OnGold,
+                                modifier = Modifier.size(24.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = if (isServiceActive) "STOP FLOATING OVERLAY" else "LAUNCH FLOATING OVERLAY",
+                                text = if (isServiceActive) "STOP AIM ASSISTANT" else "START PLAYING",
                                 color = if (isServiceActive) Color.White else OnGold,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Black,
+                                fontSize = 15.sp,
+                                letterSpacing = 0.5.sp
                             )
                         }
                     }
@@ -367,7 +383,7 @@ fun HomeScreen(
                 }
             }
 
-            // SECTION 1: AIM SECTION
+            // AIM SECTION
             item {
                 Text(
                     text = "AIM SECTION",
@@ -399,7 +415,7 @@ fun HomeScreen(
                 )
             }
 
-            // SECTION 2: CALCULATE SECTION
+            // CALCULATE SECTION
             item {
                 Text(
                     text = "CALCULATE SECTION",
@@ -421,7 +437,7 @@ fun HomeScreen(
                 )
             }
 
-            // SECTION 3: MASTER SECTION
+            // MASTER SECTION
             item {
                 Text(
                     text = "MASTER SECTION",
@@ -436,9 +452,9 @@ fun HomeScreen(
             item {
                 FeatureMenuCard(
                     icon = Icons.Default.Speed,
-                    title = "2-Bank & 3-Bank Shot Master",
+                    title = "2-Bank & 4-Bank Shot Master",
                     subtitle = "Calculate table cushion rebounds with geometric angles for advanced trick shots.",
-                    badge = "3-BANK SHOT",
+                    badge = "4-BANK SHOT",
                     onClick = { onNavigate(Screen.BANK_SHOT_MASTER) }
                 )
             }
@@ -673,7 +689,7 @@ fun AimSimulatorScreen(
                         val ballRadius = config.ballRadius.dp.toPx()
                         val primaryColor = config.primaryColor.color
                         val secondaryColor = config.secondaryColor.color
-                        val effectiveLength = if (config.showExtendedLines) config.lineLength * 1.5f else config.lineLength
+                        val effectiveLength = if (config.showExtendedLines) config.lineLength * 1.6f else config.lineLength
 
                         // 2. Direct Cue Trajectory Line
                         val cueDir = aimResult.aimDirection
@@ -712,13 +728,14 @@ fun AimSimulatorScreen(
                             }
                         }
 
-                        // 4. Cushion Bank Reflections (1, 2, or 3 banks)
+                        // 4. Cushion Bank Reflections (supports up to 4-bank)
                         if (config.showBankShots) {
                             aimResult.cushionReflections.forEach { bounce ->
                                 val bounceColor = when (bounce.bounceNumber) {
                                     1 -> GoldPrimary
                                     2 -> GoldSecondary
-                                    else -> CyanAccent
+                                    3 -> CyanAccent
+                                    else -> GreenSuccess
                                 }
                                 drawLine(
                                     color = bounceColor,
@@ -879,7 +896,7 @@ fun AimSimulatorScreen(
 }
 
 // -----------------------------------------------------------------------------------------
-// 4. AIM CALCULATOR SCREEN (Angle Calculator & Direction Metrics)
+// 4. AIM CALCULATOR SCREEN
 // -----------------------------------------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -940,7 +957,6 @@ fun AimCalculatorScreen(
         ) {
             item {
                 Spacer(modifier = Modifier.height(4.dp))
-                // Mathematical telemetry metrics
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -972,7 +988,6 @@ fun AimCalculatorScreen(
                 }
             }
 
-            // Aim Direction Angle Slider
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -1012,7 +1027,6 @@ fun AimCalculatorScreen(
                 }
             }
 
-            // Ball Position Controls
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -1069,7 +1083,7 @@ fun MetricBox(title: String, value: String, color: Color) {
 }
 
 // -----------------------------------------------------------------------------------------
-// 5. BANK SHOT MASTER SCREEN (2-BANK & 3-BANK SYSTEM)
+// 5. BANK SHOT MASTER SCREEN (2-BANK & 4-BANK SYSTEM)
 // -----------------------------------------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1112,7 +1126,7 @@ fun BankShotMasterScreen(
                 )
             }
 
-            // Bank Bounce Selector (1-Bank, 2-Bank, 3-Bank)
+            // Bank Bounce Selector (Direct, 2-Bank, 4-Bank)
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -1121,14 +1135,14 @@ fun BankShotMasterScreen(
                     border = BorderStroke(1.dp, DarkBorder)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "Maximum Cushion Bounces", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        Text(text = "Select reflection depth for bank shot guidelines", color = TextSecondary, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp, bottom = 12.dp))
+                        Text(text = "Aim Bank Modes", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text(text = "Select 2-Bank or 4-Bank cushion reflection depth", color = TextSecondary, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp, bottom = 12.dp))
 
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf(
-                                1 to "1-Bank",
+                                1 to "Direct",
                                 2 to "2-Bank",
-                                3 to "3-Bank"
+                                4 to "4-Bank"
                             ).forEach { (bounces, label) ->
                                 val isSelected = config.maxBankBounces == bounces
                                 Box(
@@ -1177,9 +1191,8 @@ fun BankShotMasterScreen(
                         Text(text = "Pro Tip for Bank Shots:", color = GoldPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "• 1-Bank: Direct cushion bounce into opposite side/corner pocket.\n" +
-                                    "• 2-Bank: Table corner double rail bounce for tight snookers.\n" +
-                                    "• 3-Bank: Triple rail escape shot across the entire table.",
+                            text = "• 2-Bank: Table corner double rail bounce for tight snookers.\n" +
+                                    "• 4-Bank: Full diamond-system quad rail escape shots across the table.",
                             color = TextSecondary,
                             fontSize = 12.sp,
                             lineHeight = 18.sp
@@ -1472,7 +1485,7 @@ fun PermissionsSetupScreen(
             item {
                 PermissionCard(
                     title = "Display Over Other Apps",
-                    description = "Mandatory for rendering the floating aim HUD and 3-bank trajectory lines over the pool game.",
+                    description = "Mandatory for rendering the floating aim HUD and 4-bank trajectory lines over the pool game.",
                     isGranted = overlayGranted,
                     actionText = if (overlayGranted) "GRANTED" else "GRANT OVERLAY PERMISSION",
                     onAction = {
@@ -1724,7 +1737,7 @@ fun AboutScreen(onBack: () -> Unit) {
                         Text(text = "100% Free & Unlimited", color = GoldPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "msj xD is completely free with zero ads, no subscriptions, no daily limits, and works offline. Features 3-Bank rebounds, extended guidelines, angle calculator, and floating HUD.",
+                            text = "msj xD is completely free with zero ads, no subscriptions, no daily limits, and works offline. Features 4-Bank rebounds, extended guidelines, angle calculator, and floating HUD.",
                             color = TextSecondary,
                             fontSize = 13.sp,
                             lineHeight = 19.sp

@@ -8,7 +8,10 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.content.res.Configuration
 import android.graphics.PixelFormat
+import android.media.projection.MediaProjection
+import android.media.projection.MediaProjectionManager
 import android.os.Build
 import android.os.IBinder
 import android.os.VibrationEffect
@@ -48,6 +51,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -93,13 +98,15 @@ import com.example.ui.theme.GoldPrimary
 import com.example.ui.theme.GoldSecondary
 import com.example.ui.theme.GreenSuccess
 import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.theme.OnGold
 import com.example.ui.theme.RedDanger
+import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
- * Lifecycle owner for hosting Compose Views in an overlay Window.
+ * Custom lifecycle owner for hosting Compose Views in an overlay Window.
  */
 class OverlayLifecycleOwner : LifecycleOwner, ViewModelStoreOwner, SavedStateRegistryOwner {
     private val lifecycleRegistry = LifecycleRegistry(this)
@@ -138,10 +145,11 @@ class AimOverlayService : Service() {
     private lateinit var canvasLayoutParams: WindowManager.LayoutParams
 
     private val lifecycleOwner = OverlayLifecycleOwner()
+    private var mediaProjection: MediaProjection? = null
 
     // Real-time overlay state
-    private val cueBallPosState = MutableStateFlow(Vector2D(300f, 600f))
-    private val objectBallPosState = MutableStateFlow(Vector2D(500f, 600f))
+    private val cueBallPosState = MutableStateFlow(Vector2D(350f, 400f))
+    private val objectBallPosState = MutableStateFlow(Vector2D(650f, 400f))
     private val shotAngleState = MutableStateFlow(0f)
     private val isMinimizedState = MutableStateFlow(false)
     private val selectedBallState = MutableStateFlow(0) // 0: Cue, 1: Object
@@ -150,9 +158,39 @@ class AimOverlayService : Service() {
         super.onCreate()
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         prefsManager = AimPreferencesManager.getInstance(this)
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_STOP_SERVICE) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
+        // Initialize MediaProjection if consent intent was passed
+        val resultCode = intent?.getIntExtra(EXTRA_RESULT_CODE, 0) ?: 0
+        val resultData = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent?.getParcelableExtra(EXTRA_RESULT_DATA, Intent::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent?.getParcelableExtra(EXTRA_RESULT_DATA)
+        }
 
         startAsForegroundService()
-        initOverlayViews()
+
+        if (resultCode != 0 && resultData != null) {
+            try {
+                val projectionManager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                mediaProjection = projectionManager.getMediaProjection(resultCode, resultData)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        if (hudOverlayView == null) {
+            initOverlayViews()
+        }
+
+        return START_STICKY
     }
 
     private fun startAsForegroundService() {
@@ -192,7 +230,7 @@ class AimOverlayService : Service() {
 
         val notification: Notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("msj xD Aim Tool Active")
-            .setContentText("Aim guidance & 3-bank lines active over 8 Ball Pool. Tap to configure.")
+            .setContentText("2-Bank & 4-Bank guidelines active. Tap to open HUD.")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentIntent(pendingIntent)
             .addAction(R.drawable.ic_launcher_foreground, "Stop Tool", stopPendingIntent)
@@ -203,7 +241,7 @@ class AimOverlayService : Service() {
             startForeground(
                 NOTIFICATION_ID,
                 notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION or ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
             )
         } else {
             startForeground(NOTIFICATION_ID, notification)
@@ -265,7 +303,7 @@ class AimOverlayService : Service() {
         ).apply {
             gravity = Gravity.TOP or Gravity.START
             x = 40
-            y = 120
+            y = 100
         }
 
         val hudComposeView = ComposeView(this).apply {
@@ -297,8 +335,8 @@ class AimOverlayService : Service() {
                             shotAngleState.value = newAngle
                         },
                         onResetBalls = {
-                            val w = screenWidth.toFloat()
-                            val h = screenHeight.toFloat()
+                            val w = resources.displayMetrics.widthPixels.toFloat()
+                            val h = resources.displayMetrics.heightPixels.toFloat()
                             cueBallPosState.value = Vector2D(w * 0.35f, h * 0.5f)
                             objectBallPosState.value = Vector2D(w * 0.65f, h * 0.5f)
                             shotAngleState.value = 0f
@@ -318,6 +356,16 @@ class AimOverlayService : Service() {
         }
     }
 
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // Adapt to Landscape / Portrait rotation dynamically
+        val metrics = resources.displayMetrics
+        val w = metrics.widthPixels.toFloat()
+        val h = metrics.heightPixels.toFloat()
+        cueBallPosState.value = Vector2D(w * 0.35f, h * 0.5f)
+        objectBallPosState.value = Vector2D(w * 0.65f, h * 0.5f)
+    }
+
     private fun vibrateStep() {
         if (!prefsManager.getConfig().hapticFeedbackEnabled) return
         val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
@@ -329,17 +377,11 @@ class AimOverlayService : Service() {
         }
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP_SERVICE) {
-            stopSelf()
-            return START_NOT_STICKY
-        }
-        return START_STICKY
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         lifecycleOwner.destroy()
+        mediaProjection?.stop()
+        mediaProjection = null
         hudOverlayView?.let {
             try {
                 windowManager.removeView(it)
@@ -361,11 +403,13 @@ class AimOverlayService : Service() {
     companion object {
         const val NOTIFICATION_ID = 8801
         const val ACTION_STOP_SERVICE = "com.example.msjxd.STOP_OVERLAY_SERVICE"
+        const val EXTRA_RESULT_CODE = "extra_result_code"
+        const val EXTRA_RESULT_DATA = "extra_result_data"
     }
 }
 
 /**
- * Interactive full-screen canvas rendering trajectory lines, 3-bank reflections and draggable handles.
+ * Interactive full-screen canvas rendering trajectory lines, 2-bank & 4-bank reflections and handles.
  */
 @Composable
 fun OverlayAimCanvas(
@@ -407,7 +451,7 @@ fun OverlayAimCanvas(
                 val secondaryColor = config.secondaryColor.color.copy(alpha = config.opacity)
                 val strokeWidth = config.lineThickness.dp.toPx()
                 val ballRadius = config.ballRadius.dp.toPx()
-                val effectiveLineLength = if (config.showExtendedLines) config.lineLength * 1.5f else config.lineLength
+                val effectiveLineLength = if (config.showExtendedLines) config.lineLength * 1.6f else config.lineLength
 
                 // Draw table pocket indicators
                 if (config.showPocketGuides) {
@@ -479,13 +523,14 @@ fun OverlayAimCanvas(
                     }
                 }
 
-                // 5. Cushion bank reflections (supports 1, 2, and 3 banks)
+                // 5. Cushion bank reflections (supports 2-bank & 4-bank)
                 if (config.showBankShots && aimResult.cushionReflections.isNotEmpty()) {
                     aimResult.cushionReflections.forEach { bounce ->
                         val bounceColor = when (bounce.bounceNumber) {
                             1 -> GoldPrimary
                             2 -> GoldSecondary
-                            else -> CyanAccent
+                            3 -> CyanAccent
+                            else -> GreenSuccess
                         }
                         drawLine(
                             color = bounceColor.copy(alpha = 0.85f),
@@ -550,7 +595,7 @@ fun OverlayAimCanvas(
 }
 
 /**
- * Floating draggable HUD controller window with bank shot selector, angle calculator, and D-pad.
+ * Floating draggable HUD controller window matching "Aim Tool - Bloro 8 Pool" controls.
  */
 @Composable
 fun FloatingHudControl(
@@ -606,7 +651,7 @@ fun FloatingHudControl(
         } else {
             Column(
                 modifier = Modifier
-                    .width(270.dp)
+                    .width(276.dp)
                     .padding(12.dp)
             ) {
                 // Header
@@ -626,7 +671,7 @@ fun FloatingHudControl(
                                 .background(GreenSuccess)
                         )
                         Text(
-                            text = "msj xD AIM HUD",
+                            text = "BLORO AIM HUD",
                             color = GoldPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
@@ -674,7 +719,40 @@ fun FloatingHudControl(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // Bank Mode Selector (Direct, 2-Bank, 3-Bank)
+                // Extended Line Switch
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(DarkSurfaceVariant)
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Extended Line",
+                        color = TextPrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
+                    )
+                    Switch(
+                        checked = config.showExtendedLines,
+                        onCheckedChange = { checked ->
+                            prefsManager.updateConfig { it.copy(showExtendedLines = checked) }
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = OnGold,
+                            checkedTrackColor = GoldPrimary,
+                            uncheckedThumbColor = TextMuted,
+                            uncheckedTrackColor = DarkSurface
+                        ),
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // 2-Bank and 4-Bank Aim Modes (Bloro 8 Pool feature)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -686,7 +764,7 @@ fun FloatingHudControl(
                     listOf(
                         1 to "Direct",
                         2 to "2-Bank",
-                        3 to "3-Bank"
+                        4 to "4-Bank"
                     ).forEach { (bounces, label) ->
                         val isSelected = config.showBankShots && config.maxBankBounces == bounces
                         Box(
@@ -699,14 +777,14 @@ fun FloatingHudControl(
                                         it.copy(showBankShots = true, maxBankBounces = bounces)
                                     }
                                 }
-                                .padding(vertical = 4.dp),
+                                .padding(vertical = 5.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = label,
                                 color = if (isSelected) DarkBackground else TextSecondary,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp
+                                fontSize = 11.sp
                             )
                         }
                     }

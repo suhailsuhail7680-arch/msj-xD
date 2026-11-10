@@ -53,7 +53,7 @@ data class AimConfiguration(
     val secondaryColor: GuidelineColor = GuidelineColor.ELECTRIC_CYAN,
     val opacity: Float = 0.95f,
     val showBankShots: Boolean = true,
-    val maxBankBounces: Int = 3, // 1-Bank, 2-Bank, or 3-Bank shots
+    val maxBankBounces: Int = 4, // 2-Bank and 4-Bank aim modes
     val showPocketGuides: Boolean = true,
     val showExtendedLines: Boolean = true,
     val ballRadius: Float = 36f,
